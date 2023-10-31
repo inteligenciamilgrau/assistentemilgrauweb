@@ -36,7 +36,6 @@ falar_texto = json_data[0]["assistente_falante"]
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
-print("API Key:", api_key)
 print("Falar Texto:", falar_texto)
 
 openai.api_key = api_key
