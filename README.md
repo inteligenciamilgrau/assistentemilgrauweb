@@ -2,9 +2,10 @@
 Versão Web do Assistente Mil Grau Falante
 
 ## Instruções
-Faça a instalação e rode o app.
-Converse com o chat e ele irá pedir a chave openai e explicar o que fazer.
-Agora é só conversar
+- Faça a instalação e rode o app.
+- Converse com o chat e ele irá pedir a chave openai e explicar o que fazer.
+- Agora é só conversar.
+- Clique em "Assistente Falante" para habilitar a voz.
 
 ## Instalação
 pip install -r requirements.txt
