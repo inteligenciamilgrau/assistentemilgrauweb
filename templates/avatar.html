@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        #imageContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 90vh;
+        }
+        #imageContainer img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="imageContainer">
+        <img id="image" src="{{ url_for('static', filename='img/' + image_file) }}" alt="Imagem 1">
+    </div>
+
+
+    <!--
+    <button id="toggleImageButton">Toggle Image</button>
+    <button id="talkButton">Talk</button>
+    -->
+
+    <script>
+        const image = document.getElementById("image");
+        const toggleImageButton = document.getElementById("toggleImageButton");
+        let isImage1 = true;
+
+
+
+        function changeImage() {
+            // Make an AJAX request to a Flask endpoint to update the image
+            fetch('/actual_image_file')
+                .then(response => response.text())
+                .then(data => {
+                    // Update the image source based on the response from the server
+                    document.getElementById('image').src = "static/img/" + JSON.parse(data).img;
+                })
+                .catch(error => {
+                    console.error('Error updating the image:', error);
+                });
+        }
+
+        /*
+        toggleImageButton.addEventListener("click", function () {
+            if (isImage1) {
+                image.src = "static/img/Snapshot_2.png";
+                isImage1 = false;
+            } else {
+                image.src = "static/img/Snapshot_1.png";
+                isImage1 = true;
+            }
+        });
+        */
+
+        let isAudioActive = false;
+        const talkButton = document.getElementById("talkButton");
+
+        let audioContext; // Declare the audioContext variable
+        let microphoneStream; // Declare the microphone stream variable
+        let analyser; // Declare the audio analyser variable
+        let dataArray; // Declare the dataArray variable
+
+        /*
+        // Create the AudioContext within a user-initiated event
+        talkButton.addEventListener("click", function () {
+            if (!isAudioActive) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Start microphone stream
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(function (stream) {
+                        microphoneStream = stream;
+                        const microphoneSource = audioContext.createMediaStreamSource(stream);
+
+                        // Create an analyser node to analyze audio data
+                        analyser = audioContext.createAnalyser();
+                        analyser.fftSize = 256;
+                        const bufferLength = analyser.frequencyBinCount;
+                        dataArray = new Uint8Array(bufferLength);
+
+                        // Connect the microphone source to the analyser
+                        microphoneSource.connect(analyser);
+
+                        // Proceed with audio analysis setup
+                        isAudioActive = true;
+
+                        // Start updating the image based on audio
+                        updateImage();
+                    })
+                    .catch(function (err) {
+                        console.error("Error accessing the microphone:", err);
+                    });
+
+                talkButton.textContent = "Deactivate";
+            } else {
+                // Stop the microphone stream
+                if (microphoneStream) {
+                    microphoneStream.getTracks().forEach(track => track.stop());
+                }
+
+                // Perform actions to stop audio analysis
+                analyser.disconnect();
+                audioContext.close().then(() => {
+                    audioContext = null;
+                    analyser = null;
+                });
+
+                talkButton.textContent = "Talk";
+                isAudioActive = false;
+            }
+        });
+        */
+
+        // Function to update the image based on audio level
+        function updateImage() {
+            if (isAudioActive) {
+                requestAnimationFrame(updateImage);
+
+                // Analyze the audio data
+                analyser.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+
+                // Change the image based on the audio level
+                //console.log(average);
+                if (average > 20) {
+                    image.src = "static/img/Snapshot_2.png";
+                } else {
+                    image.src = "static/img/Snapshot_1.png";
+                }
+            }
+        }
+
+        function updateImage() {
+            changeImage();
+
+            // Add a timestamp as a query parameter to the image source URL to force a refresh
+            var imageFile = "{{ image_file }}";
+
+            const timestamp = new Date().getTime();
+            //const imageUrl = "{{ url_for('static', filename='img/' + image_file) }}"// + "?t=" + timestamp;
+            const imageUrl = "{{ url_for('static', filename='img/') }}" + imageFile + "?t=" + timestamp;
+            console.log(imageFile)
+            console.log(imageUrl)
+
+            // Update the image source
+            document.getElementById('image').src = imageUrl;
+        }
+
+        // Automatically refresh the image every 5 seconds (adjust the interval as needed)
+        setInterval(changeImage, 100);
+    </script>
+</body>
+</html>
