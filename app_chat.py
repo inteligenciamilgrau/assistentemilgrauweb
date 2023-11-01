@@ -127,13 +127,13 @@ def enviar():
         pergunta_thread.join()
     try:
         resposta = response.choices[0].message.content
-    except:
+    except Exception as e:
         resposta = """
-        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo Config!
-        """
+        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo Config!\n\n Resposta:
+        """ + str(response) + "!! \n\nErro: " + str(e)
 
     if falar_texto:
-        falar_thread = threading.Thread(target=thread_falar, args=(resposta, voz_resposta))
+        falar_thread = threading.Thread(target=thread_falar, args=(resposta[:resposta.find("Resposta:")], voz_resposta))
         falar_thread.start()
 
         while falar_thread.is_alive():
@@ -143,8 +143,8 @@ def enviar():
         image_file = "02_chatbot_falando.png"
         update_image()
 
-
     return resposta
+
 
 @app.route('/falar', methods=['GET'])
 def falar():
@@ -154,10 +154,14 @@ def falar():
     json_data[0]["assistente_falante"] = falar_texto
 
     # Save the updated JSON data back to the file
-    with open("config.json", "w") as file:
-        json.dump(json_data, file, indent=4)
+    try:
+        with open("config.json", "w") as file:
+            json.dump(json_data, file, indent=4)
+    except Exception as e:
+        print("Deu ruim gravando", e)
 
     return {"ok":"Ok"}
+
 
 if __name__ == '__main__':
     app.run(debug=True)
