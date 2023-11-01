@@ -6,9 +6,6 @@ import threading
 import json
 import os
 
-voz_pergunta = 0
-voz_resposta = 1
-
 app = Flask(__name__)
 
 # Check if the config.json file exists
@@ -22,7 +19,9 @@ else:
         {
             "model": "gpt-3.5-turbo",
             "api_key": "sua-api-key-openai",
-            "assistente_falante": False
+            "assistente_falante": False,
+            "voz_pergunta": 0,
+            "voz_resposta": 1
         }
     ]
 
@@ -36,6 +35,8 @@ else:
 model = json_data[0]["model"]
 api_key = json_data[0]["api_key"]
 falar_texto = json_data[0]["assistente_falante"]
+voz_pergunta = json_data[0]["voz_pergunta"]
+voz_resposta = json_data[0]["voz_resposta"]
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
