@@ -5,6 +5,10 @@ import pyttsx3
 import threading
 import json
 import os
+try:
+    import pyfirmata2
+except:
+    print("Instalar pyfirmata2 para usar arduino")
 
 app = Flask(__name__)
 
@@ -21,7 +25,8 @@ else:
             "api_key": "sua-api-key-openai",
             "assistente_falante": False,
             "voz_pergunta": 0,
-            "voz_resposta": 1
+            "voz_resposta": 1,
+            "arduino_porta": "COM1"
         }
     ]
 
@@ -37,6 +42,7 @@ api_key = json_data[0]["api_key"]
 falar_texto = json_data[0]["assistente_falante"]
 voz_pergunta = json_data[0]["voz_pergunta"]
 voz_resposta = json_data[0]["voz_resposta"]
+arduinoBoard = json_data[0]["arduino_porta"]
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
@@ -47,9 +53,45 @@ openai.api_key = api_key
 if api_key == "sua-api-key-openai":
     print("Coloque a sua chave no arquivo config.json")
 
-
-
 image_file = "01_chatbot_feliz.png"
+
+
+def setar_porta(porta):
+    global arduinoBoard
+
+    print("Setando porta")
+    print("Dados", porta)
+    resposta = {
+        "porta": porta,
+    }
+    try:
+        arduinoBoard = pyfirmata2.Arduino(porta)
+
+        json_data[0]["arduino_porta"] = porta
+
+        # Save the updated JSON data back to the file
+        try:
+            with open("config.json", "w") as file:
+                json.dump(json_data, file, indent=4)
+        except Exception as e:
+            print("Deu ruim gravando", e)
+
+        return json.dumps(resposta)
+    except Exception as e:
+        return "Deu ruim: " + str(e)
+
+def setar_pino(pino, estado):
+    print("Setando pino")
+    print("Dados", pino, estado)
+    resposta = {
+        "pino": pino,
+        "estado": estado,
+    }
+    try:
+        arduinoBoard.digital[pino].write(estado)
+        return json.dumps(resposta)
+    except Exception as e:
+        return "Deu ruim: " + str(e)
 
 def thread_falar(resposta_t, voz):
     velocidade = 180
@@ -68,16 +110,106 @@ def thread_falar(resposta_t, voz):
     end = time.time()
     print("Duracao", end - start)
 
-def generate_answer(messages):
+def generate_answer(messages, modelo):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=modelo,
             messages=messages,
             temperature=1.0,
+            functions=[
+                {
+                    "name": "setar_porta",
+                    "description": "Configurar a porta do arduino",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "porta": {"type": "string", "description": "Porta do arduino"},
+                        },
+                        "required": ["porta"],
+                    },
+                },
+                {
+                    "name": "setar_pino",
+                    "description": "Ligar ou desligar o estado de um pino do arduino",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "pino": {"type": "integer", "description": "Pino do arduino"},
+                            "estado": {"type": "boolean", "description": "true of false"}
+                        },
+                        "required": ["pino", "estado"],
+                    },
+                }
+            ],
+            function_call="auto",
         )
+        first_response = response["choices"][0]["message"]
+        print("\n###################################################")
+        print("Primeira resposta:", first_response['content'])
+
+        # Passo 2, verifica se o modelo quer chamar uma funcao
+        if first_response.get("function_call"):
+            function_name = first_response["function_call"]["name"]
+            function_args = json.loads(first_response["function_call"]["arguments"])
+
+            print("************************")
+            print("Detectou uma função", function_name, function_args)
+            print("************************")
+
+            # Passo 3, chama a funcao
+            # Detalhe: a resposta em JSON do modelo pode não ser um JSON valido
+            if function_name == "setar_pino":
+                function_response = setar_pino(
+                    pino=function_args.get("pino"),
+                    estado=function_args.get("estado"),
+                )
+
+                # Passo 4 - opcional , manda pro modelo a resposta da chamada de funcao
+                messages.append(first_response)  # extend conversation with assistant's reply
+                messages.append(
+                    {
+                        "role": "function",
+                        "name": function_name,
+                        "content": function_response,
+                    }
+                )
+                second_response = openai.ChatCompletion.create(
+                        model=modelo,
+                        messages=messages
+                    )
+                print(second_response)
+                print("Segunda Resposta:", second_response["choices"][0]["message"]['content'])
+                response = second_response
+                response["choices"][0]["message"]['content'] = "COMANDO: " + response["choices"][0]["message"][
+                    'content']
+            elif function_name == "setar_porta":
+                function_response = setar_porta(
+                    porta=function_args.get("porta"),
+                )
+
+                # Passo 4 - opcional , manda pro modelo a resposta da chamada de funcao
+                messages.append(first_response)  # extend conversation with assistant's reply
+                messages.append(
+                    {
+                        "role": "function",
+                        "name": function_name,
+                        "content": function_response,
+                    }
+                )
+                second_response = openai.ChatCompletion.create(
+                        model=modelo,
+                        messages=messages
+                    )
+                print(second_response)
+                print("Segunda Resposta:", second_response["choices"][0]["message"]['content'])
+                response = second_response
+                response["choices"][0]["message"]['content'] = "COMANDO: " + response["choices"][0]["message"][
+                    'content']
+            else:
+                print("Nao achei a funcao pedida")
         return response
     except Exception as e:
-        print("Erro", e)
+        print("Erro de excessão:", e)
         return e
 
 @app.route('/')
@@ -121,7 +253,7 @@ def enviar():
         pergunta = data["userText"][-1]["content"]
         pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
-    response = generate_answer(data["userText"])
+    response = generate_answer(data["userText"], model)
 
     if falar_texto:
         pergunta_thread.join()
