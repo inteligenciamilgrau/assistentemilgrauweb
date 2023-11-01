@@ -43,7 +43,24 @@ const getChatResponse = async (incomingChatDiv) => {
         }
     }));
 
-    pElement.textContent = response;
+    //pElement.textContent = response;
+    response = response + "bobz"
+    const words = response.split(' ');
+
+    let wordIndex = 0;
+
+    // Function to add words word by word
+    function addWord() {
+        if (wordIndex < words.length) {
+            pElement.textContent += words[wordIndex] + ' ';
+            wordIndex++;
+            setTimeout(addWord, 50); // Adjust the delay (in milliseconds) as needed
+        }
+    }
+
+    // Start adding words
+    addWord();
+
     userHistory.push({role: "assistant", content: response});
 
   } catch (error) {
