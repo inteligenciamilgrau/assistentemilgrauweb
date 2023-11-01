@@ -6,6 +6,9 @@ import threading
 import json
 import os
 
+voz_pergunta = 0
+voz_resposta = 1
+
 app = Flask(__name__)
 
 # Check if the config.json file exists
@@ -115,7 +118,7 @@ def enviar():
 
     if falar_texto:
         pergunta = data["userText"][-1]["content"]
-        pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, 7))
+        pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
     response = generate_answer(data["userText"])
 
@@ -129,7 +132,7 @@ def enviar():
         """
 
     if falar_texto:
-        falar_thread = threading.Thread(target=thread_falar, args=(resposta, 1))
+        falar_thread = threading.Thread(target=thread_falar, args=(resposta, voz_resposta))
         falar_thread.start()
 
         while falar_thread.is_alive():
