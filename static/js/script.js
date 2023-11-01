@@ -44,7 +44,7 @@ const getChatResponse = async (incomingChatDiv) => {
     }));
 
     //pElement.textContent = response;
-    response = response + "bobz"
+    response = response
     const words = response.split(' ');
 
     let wordIndex = 0;
