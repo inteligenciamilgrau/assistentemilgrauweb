@@ -55,7 +55,7 @@ if api_key == "sua-api-key-openai":
     print("Coloque a sua chave no arquivo config.json")
 
 
-image_file = "01_chatbot_feliz.png"
+image_file = "01_chatbot_feliz.gif"
 
 
 def thread_falar(resposta_t, voz):
@@ -64,7 +64,7 @@ def thread_falar(resposta_t, voz):
     engine.setProperty('rate', velocidade)
     voices = engine.getProperty('voices')
     for indice, vozes in enumerate(voices):  # listar vozes
-        print(indice, vozes.name)
+        #print(indice, vozes.name) # listar as vozes instaladas
         pass
     engine.setProperty('voice', voices[voz].id)
 
@@ -115,7 +115,7 @@ def update_image():
     # Update the image file variable based on some condition
     # In this example, we toggle between two images
     global image_file
-    image_file = "02_chatbot_falando.png" if image_file == "01_chatbot_feliz.png" else "01_chatbot_feliz.png"
+    image_file = "02_chatbot_falando.gif" if image_file == "01_chatbot_feliz.gif" else "01_chatbot_feliz.gif"
 
     # Return the new image file path
     return jsonify(image_file)
@@ -155,14 +155,17 @@ def falar():
     global image_file
     texto = request.get_json()
     if falar_texto and falar_resposta:
+        image_file = "01_chatbot_feliz.gif"
+        update_image()
+
         falar_thread = threading.Thread(target=thread_falar, args=(texto["texto"], voz_resposta))
         falar_thread.start()
 
         while falar_thread.is_alive():
-            update_image()
+            #update_image()
             time.sleep(0.18)
             print("falando")
-        image_file = "02_chatbot_falando.png"
+        image_file = "02_chatbot_falando.gif"
         update_image()
     return {"ok": "ok"}
 
