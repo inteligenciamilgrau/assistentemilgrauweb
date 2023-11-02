@@ -32,24 +32,24 @@
         <p id="mensagem">{{ jogador_atual }} é o próximo a jogar.</p>
         <table>
             <tr>
-                <td onclick="fazerJogada(this, 1)">{{ tabuleiro[0] }}</td>
-                <td onclick="fazerJogada(this, 2)">{{ tabuleiro[1] }}</td>
-                <td onclick="fazerJogada(this, 3)">{{ tabuleiro[2] }}</td>
+                <td onclick="fazerJogada(this, 1, 'human')">{{ tabuleiro[0] }}</td>
+                <td onclick="fazerJogada(this, 2, 'human')">{{ tabuleiro[1] }}</td>
+                <td onclick="fazerJogada(this, 3, 'human')">{{ tabuleiro[2] }}</td>
             </tr>
             <tr>
-                <td onclick="fazerJogada(this, 4)">{{ tabuleiro[3] }}</td>
-                <td onclick="fazerJogada(this, 5)">{{ tabuleiro[4] }}</td>
-                <td onclick="fazerJogada(this, 6)">{{ tabuleiro[5] }}</td>
+                <td onclick="fazerJogada(this, 4, 'human')">{{ tabuleiro[3] }}</td>
+                <td onclick="fazerJogada(this, 5, 'human')">{{ tabuleiro[4] }}</td>
+                <td onclick="fazerJogada(this, 6, 'human')">{{ tabuleiro[5] }}</td>
             </tr>
             <tr>
-                <td onclick="fazerJogada(this, 7)">{{ tabuleiro[6] }}</td>
-                <td onclick="fazerJogada(this, 8)">{{ tabuleiro[7] }}</td>
-                <td onclick="fazerJogada(this, 9)">{{ tabuleiro[8] }}</td>
+                <td onclick="fazerJogada(this, 7, 'human')">{{ tabuleiro[6] }}</td>
+                <td onclick="fazerJogada(this, 8, 'human')">{{ tabuleiro[7] }}</td>
+                <td onclick="fazerJogada(this, 9, 'human')">{{ tabuleiro[8] }}</td>
             </tr>
         </table>
 
         <script>
-            function fazerJogada(element, posicao) {
+            function fazerJogada(element, posicao, player) {
                 var jogador = "{{ jogador_atual }}";
                 if (jogador === "{{ jogador_atual }}") {
                     $.ajax({
@@ -59,6 +59,10 @@
                         data: JSON.stringify({ posicao: posicao, jogador: jogador }),
                         success: function(response) {
                             atualizarJogo(response);
+                            //console.log(response);
+                            if(player=="human"){
+                                window.parent.postMessage(response, '*');
+                                }
                         }
                     });
                 }

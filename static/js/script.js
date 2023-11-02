@@ -46,6 +46,15 @@ const getChatResponse = async (incomingChatDiv) => {
 
     //pElement.textContent = response;
     //response = response
+    if(response.startsWith('{"jogada"')){
+        jogada = JSON.parse(response);
+        //console.log("Bot Jogando", jogada, jogada["jogada"]);
+        var message = {
+                jogada: response // Function name to call in Child 1
+            };
+            parent.postMessage(message, "*");
+        //document.getElementById('myIframe').contentWindow.testar();
+    }
 
     $.ajax({
         type: 'POST',
@@ -243,3 +252,9 @@ recordButton.addEventListener("click", function() {
 
     // You can replace the alert with any code you want to execute.
 });
+
+function jogar_com_chat(dados){
+          //console.log("Teste", dados);
+          chatInput.value = "Jogo da velha" + JSON.stringify(dados) + 'envie sua jogada no formato json como no exemplo {"jogada": 2}';
+            handleOutgoingChat();
+          }
