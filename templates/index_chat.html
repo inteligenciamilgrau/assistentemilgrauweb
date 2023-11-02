@@ -30,6 +30,7 @@
         <ul class="menu">
             <button id="avatarButton">Avatar</button>
             <button id="jogoButton">Jogo da Velha</button>
+            <button id="arduinoButton">Arduino</button>
             <button id="aboutButton">Sobre</button>
         </ul>
     </div>
@@ -51,6 +52,9 @@
         });
         document.getElementById("jogoButton").addEventListener("click", function () {
             document.getElementById("myIframe").src = "{{ url_for('jogo') }}";
+        });
+        document.getElementById("arduinoButton").addEventListener("click", function () {
+            document.getElementById("myIframe").src = "{{ url_for('arduino') }}";
         });
 
         window.addEventListener("message", function(event) {

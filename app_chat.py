@@ -318,6 +318,11 @@ def about():
     return render_template('about.html')
 
 
+@app.route('/arduino')
+def arduino():
+    return render_template('arduino.html')
+
+
 @app.route('/gravar')
 def gravar():
     with sr.Microphone() as source:
