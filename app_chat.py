@@ -89,6 +89,12 @@ def generate_answer(messages):
         return e
 
 
+tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+jogador_atual = "X"
+vencedor = None
+jogadas = 0
+
+
 @app.route('/')
 def assistente_mil_grau():
     return render_template('index_chat.html')
@@ -196,6 +202,56 @@ def gravar():
     except sr.RequestError as e:
         print("Erro na solicitação: {0}".format(e))
     return {"texto": text}
+
+
+@app.route('/jogo.html')
+def jogo():
+    return render_template('jogo.html', tabuleiro=tabuleiro, jogador_atual=jogador_atual, vencedor=vencedor)
+
+
+@app.route('/atualizar_jogada', methods=['POST'])
+def atualizar_jogada():
+    global jogador_atual, vencedor, jogadas, tabuleiro
+    data = request.get_json()
+    posicao = data['posicao'] - 1
+    jogadas += 1
+
+    if not tabuleiro[posicao] in ["X", "O"] and not vencedor:
+        tabuleiro[posicao] = jogador_atual
+
+        if verificar_vencedor(jogador_atual):
+            vencedor = jogador_atual
+
+        elif jogadas >= 9:
+            vencedor = "Empate"
+
+        jogador_atual = "X" if jogador_atual == "O" else "O"
+
+        return jsonify({'tabuleiro': tabuleiro, 'vencedor': vencedor, 'jogador_atual': jogador_atual})
+
+    tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    jogador_atual = "X"
+    vencedor = None
+    jogadas = 0
+
+    return jsonify({'tabuleiro': tabuleiro, 'vencedor': vencedor, 'jogador_atual': jogador_atual})
+
+
+@app.route('/pegar_dados', methods=['POST'])
+def pegar_dados():
+    return jsonify({'tabuleiro': tabuleiro, 'vencedor': vencedor, 'jogador_atual': jogador_atual})
+
+
+def verificar_vencedor(jogador):
+    # Lógica para verificar se um jogador venceu
+    return ((tabuleiro[0] == tabuleiro[1] == tabuleiro[2] == jogador) or
+            (tabuleiro[3] == tabuleiro[4] == tabuleiro[5] == jogador) or
+            (tabuleiro[6] == tabuleiro[7] == tabuleiro[8] == jogador) or
+            (tabuleiro[0] == tabuleiro[3] == tabuleiro[6] == jogador) or
+            (tabuleiro[1] == tabuleiro[4] == tabuleiro[7] == jogador) or
+            (tabuleiro[2] == tabuleiro[5] == tabuleiro[8] == jogador) or
+            (tabuleiro[0] == tabuleiro[4] == tabuleiro[8] == jogador) or
+            (tabuleiro[2] == tabuleiro[4] == tabuleiro[6] == jogador))
 
 
 if __name__ == '__main__':

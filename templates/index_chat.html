@@ -29,6 +29,7 @@
     <div class="top-menu">
         <ul class="menu">
             <button id="avatarButton">Avatar</button>
+            <button id="jogoButton">Jogo da Velha</button>
             <button id="aboutButton">Sobre</button>
         </ul>
     </div>
@@ -47,6 +48,9 @@
         });
         document.getElementById("avatarButton").addEventListener("click", function () {
             document.getElementById("myIframe").src = "{{ url_for('avatar') }}";
+        });
+        document.getElementById("jogoButton").addEventListener("click", function () {
+            document.getElementById("myIframe").src = "{{ url_for('jogo') }}";
         });
     </script>
 </body>
