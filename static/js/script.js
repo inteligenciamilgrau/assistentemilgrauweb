@@ -45,7 +45,18 @@ const getChatResponse = async (incomingChatDiv) => {
     }));
 
     //pElement.textContent = response;
-    response = response
+    //response = response
+
+    $.ajax({
+        type: 'POST',
+        url: '/falar',
+        contentType: 'application/json',
+        data: JSON.stringify({ texto: response }),
+        success: function(response_gpt) {
+            //response = response_gpt
+        }
+    })
+
     const words = response.split(' ');
 
     let wordIndex = 0;
@@ -189,7 +200,7 @@ minhaCheckbox.addEventListener("change", function() {
         //console.log("A checkbox foi desmarcada.");
     }
 
-    fetch('/falar?falar=' + falar, {
+    fetch('/habilita_voz?falar=' + falar, {
       method: 'GET', // This is the default, so you can omit it.
       headers: {
         'Content-Type': 'application/json', // Set the content type if needed.

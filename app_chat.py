@@ -24,7 +24,9 @@ else:
             "api_key": "sua-api-key-openai",
             "assistente_falante": False,
             "voz_pergunta": 0,
-            "voz_resposta": 1
+            "voz_resposta": 1,
+            "falar_pergunta": False,
+            "falar_resposta": True
         }
     ]
 
@@ -40,6 +42,8 @@ api_key = json_data[0]["api_key"]
 falar_texto = json_data[0]["assistente_falante"]
 voz_pergunta = json_data[0]["voz_pergunta"]
 voz_resposta = json_data[0]["voz_resposta"]
+falar_pergunta = json_data[0]["falar_pergunta"]
+falar_resposta = json_data[0]["falar_resposta"]
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
@@ -51,8 +55,8 @@ if api_key == "sua-api-key-openai":
     print("Coloque a sua chave no arquivo config.json")
 
 
-
 image_file = "01_chatbot_feliz.png"
+
 
 def thread_falar(resposta_t, voz):
     velocidade = 180
@@ -71,6 +75,7 @@ def thread_falar(resposta_t, voz):
     end = time.time()
     print("Duracao", end - start)
 
+
 def generate_answer(messages):
     try:
         response = openai.ChatCompletion.create(
@@ -82,6 +87,7 @@ def generate_answer(messages):
     except Exception as e:
         print("Erro", e)
         return e
+
 
 @app.route('/')
 def assistente_mil_grau():
@@ -108,6 +114,7 @@ def update_image():
     # Return the new image file path
     return jsonify(image_file)
 
+
 @app.route('/actual_image_file', methods=['GET', 'POST'])
 def actual_image_file():
     # Return the new image file path
@@ -120,13 +127,13 @@ def enviar():
 
     data = request.get_json()
 
-    if falar_texto:
+    if falar_texto and falar_pergunta:
         pergunta = data["userText"][-1]["content"]
         pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
     response = generate_answer(data["userText"])
 
-    if falar_texto:
+    if falar_texto and falar_pergunta:
         pergunta_thread.join()
     try:
         resposta = response.choices[0].message.content
@@ -135,8 +142,14 @@ def enviar():
         Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo Config!\n\n Resposta:
         """ + str(response) + "!! \n\nErro: " + str(e)
 
-    if falar_texto:
-        falar_thread = threading.Thread(target=thread_falar, args=(resposta[:resposta.find("Resposta:")], voz_resposta))
+    return resposta
+
+@app.route('/falar', methods=['POST'])
+def falar():
+    global image_file
+    texto = request.get_json()
+    if falar_texto and falar_resposta:
+        falar_thread = threading.Thread(target=thread_falar, args=(texto["texto"], voz_resposta))
         falar_thread.start()
 
         while falar_thread.is_alive():
@@ -145,12 +158,10 @@ def enviar():
             print("falando")
         image_file = "02_chatbot_falando.png"
         update_image()
+    return {"ok": "ok"}
 
-    return resposta
-
-
-@app.route('/falar', methods=['GET'])
-def falar():
+@app.route('/habilita_voz', methods=['GET'])
+def habilita_voz():
     global falar_texto
     falar_texto = bool(request.args.get('falar'))
 
