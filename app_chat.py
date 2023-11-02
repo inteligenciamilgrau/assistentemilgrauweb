@@ -5,8 +5,11 @@ import pyttsx3
 import threading
 import json
 import os
+import speech_recognition as sr
 
 app = Flask(__name__)
+
+recognizer = sr.Recognizer()
 
 # Check if the config.json file exists
 if os.path.exists('config.json'):
@@ -166,6 +169,22 @@ def falar():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+
+@app.route('/gravar')
+def gravar():
+    with sr.Microphone() as source:
+        print("Pressione o botão e fale...")
+        audio = recognizer.listen(source)
+    try:
+        # Use a biblioteca de reconhecimento de voz para converter o áudio em texto
+        text = recognizer.recognize_google(audio, language="pt-BR")
+        print("Texto reconhecido: " + text)
+    except sr.UnknownValueError:
+        print("Não foi possível entender o áudio")
+    except sr.RequestError as e:
+        print("Erro na solicitação: {0}".format(e))
+    return {"texto": text}
 
 
 if __name__ == '__main__':

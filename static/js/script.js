@@ -2,6 +2,7 @@ const chatInput = document.querySelector("#chat-input");
 const sendButton = document.querySelector("#send-btn");
 const chatContainer = document.querySelector(".chat-container");
 const deleteButton = document.querySelector("#delete-btn");
+const recordButton = document.querySelector("#record-btn");
 
 let userText = null;
 let userHistory = [];
@@ -206,4 +207,28 @@ minhaCheckbox.addEventListener("change", function() {
       // Handle errors here
       console.error('Fetch error:', error);
     });
+});
+
+recordButton.addEventListener("click", function() {
+    var texto = "";
+    try{
+        $.ajax({
+        type: 'GET',
+        url: '/gravar',
+        contentType: 'application/json',
+        data: JSON.stringify({ userText: userHistory }),
+        success: function(response) {
+
+            chatInput.value = response["texto"];
+            handleOutgoingChat();
+        }
+    });
+            }
+           catch (error) {
+                // Add error class to the paragraph element and set error text
+                console.log("Deu ruim no assistente! Tenta de novo!" + error);
+              }
+    // This code will run when the button is clicked
+
+    // You can replace the alert with any code you want to execute.
 });
