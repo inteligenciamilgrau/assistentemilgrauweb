@@ -1,3 +1,5 @@
 Flask
 openai
 pyttsx3
+SpeechRecognition
+pyfirmata2
