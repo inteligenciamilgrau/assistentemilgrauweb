@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt">
+    <head>
+        <meta charset="UTF-8">
+        <title>Jogo da Velha</title>
+        <style>
+            table {
+                border-collapse: collapse;
+                width: 300px;
+                height: 300px;
+                margin: 20px auto;
+            }
+
+            td {
+                border: 1px solid #000;
+                text-align: center;
+                font-size: 24px;
+                font-weight: bold;
+                width: 100px;
+                height: 100px;
+                cursor: pointer;
+            }
+
+            td:hover {
+                background-color: #f2f2f2;
+            }
+        </style>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    </head>
+    <body>
+        <h1>Jogo da Velha</h1>
+        <p id="mensagem">{{ jogador_atual }} é o próximo a jogar.</p>
+        <table>
+            <tr>
+                <td onclick="fazerJogada(this, 1, 'human')">{{ tabuleiro[0] }}</td>
+                <td onclick="fazerJogada(this, 2, 'human')">{{ tabuleiro[1] }}</td>
+                <td onclick="fazerJogada(this, 3, 'human')">{{ tabuleiro[2] }}</td>
+            </tr>
+            <tr>
+                <td onclick="fazerJogada(this, 4, 'human')">{{ tabuleiro[3] }}</td>
+                <td onclick="fazerJogada(this, 5, 'human')">{{ tabuleiro[4] }}</td>
+                <td onclick="fazerJogada(this, 6, 'human')">{{ tabuleiro[5] }}</td>
+            </tr>
+            <tr>
+                <td onclick="fazerJogada(this, 7, 'human')">{{ tabuleiro[6] }}</td>
+                <td onclick="fazerJogada(this, 8, 'human')">{{ tabuleiro[7] }}</td>
+                <td onclick="fazerJogada(this, 9, 'human')">{{ tabuleiro[8] }}</td>
+            </tr>
+        </table>
+
+        <script>
+            function fazerJogada(element, posicao, player) {
+                var jogador = "{{ jogador_atual }}";
+                if (jogador === "{{ jogador_atual }}") {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/atualizar_jogada',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ posicao: posicao, jogador: jogador }),
+                        success: function(response) {
+                            atualizarJogo(response);
+                            //console.log(response);
+                            if(player=="human"){
+                                window.parent.postMessage(response, '*');
+                                }
+                        }
+                    });
+                }
+            }
+
+            function atualizarTabuleiro(tabuleiro) {
+                for (var i = 0; i < tabuleiro.length; i++) {
+                    document.getElementsByTagName('td')[i].innerText = tabuleiro[i];
+                }
+            }
+
+            function atualizarMensagem(vencedor, atual) {
+                var mensagemElement = document.getElementById('mensagem');
+                if (vencedor) {
+                    if (vencedor === "Empate") {
+                        mensagemElement.innerText = "Empate! O jogo acabou.";
+                    } else {
+                        mensagemElement.innerText = vencedor + " venceu! O jogo acabou.";
+                    }
+                } else {
+                    mensagemElement.innerText = atual + " é o próximo a jogar.";
+                }
+            }
+
+            function atualizarJogo(response) {
+                var tabuleiro = response.tabuleiro;
+                var vencedor = response.vencedor;
+                var atual = response.jogador_atual
+
+                atualizarTabuleiro(tabuleiro);
+                atualizarMensagem(vencedor, atual);
+            }
+
+            // Automatically refresh the screen every 2 seconds
+            setInterval(function() {
+                $.ajax({
+                        type: 'POST',
+                        url: '/pegar_dados',
+                        contentType: 'application/json',
+                        data: "",
+                        success: function(response) {
+                            atualizarJogo(response);
+                        }
+                    });
+
+            }, 1000); // Refresh every 2 seconds
+        </script>
+    </body>
+</html>
+
+
+

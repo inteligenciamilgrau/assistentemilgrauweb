@@ -29,12 +29,13 @@
     <div class="top-menu">
         <ul class="menu">
             <button id="avatarButton">Avatar</button>
+            <button id="jogoButton">Jogo da Velha</button>
             <button id="aboutButton">Sobre</button>
         </ul>
     </div>
 
     <div class="iframe-container">
-        <iframe src="assistente.html" style="width: 100%; height: 90vh;" frameborder="0"></iframe>
+        <iframe id="assist" src="assistente.html" style="width: 100%; height: 90vh;" frameborder="0"></iframe>
     </div>
 
     <div class="iframe-container">
@@ -47,6 +48,25 @@
         });
         document.getElementById("avatarButton").addEventListener("click", function () {
             document.getElementById("myIframe").src = "{{ url_for('avatar') }}";
+        });
+        document.getElementById("jogoButton").addEventListener("click", function () {
+            document.getElementById("myIframe").src = "{{ url_for('jogo') }}";
+        });
+
+        window.addEventListener("message", function(event) {
+            if (event.data && event.data.jogada) {
+                //console.log("Func");
+                var targetChildFrame = document.getElementsByTagName("iframe")[0];
+                targetChildFrame.contentWindow.postMessage(event.data, "*");
+                jogada = JSON.parse(event.data.jogada);
+                document.getElementById('myIframe').contentWindow.fazerJogada("O", jogada["jogada"], "bot");
+            }
+            else if (event.data) {
+                // Exiba a variável recebida no HTML Secundário 2
+                //console.log("Recebi main: " + event.data["tabuleiro"])
+                document.getElementById('assist').contentWindow.jogar_com_chat(event.data);
+            }
+
         });
     </script>
 </body>

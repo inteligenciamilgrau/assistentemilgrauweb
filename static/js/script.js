@@ -2,6 +2,7 @@ const chatInput = document.querySelector("#chat-input");
 const sendButton = document.querySelector("#send-btn");
 const chatContainer = document.querySelector(".chat-container");
 const deleteButton = document.querySelector("#delete-btn");
+const recordButton = document.querySelector("#record-btn");
 
 let userText = null;
 let userHistory = [];
@@ -44,7 +45,27 @@ const getChatResponse = async (incomingChatDiv) => {
     }));
 
     //pElement.textContent = response;
-    response = response
+    //response = response
+    if(response.startsWith('{"jogada"')){
+        jogada = JSON.parse(response);
+        //console.log("Bot Jogando", jogada, jogada["jogada"]);
+        var message = {
+                jogada: response // Function name to call in Child 1
+            };
+            parent.postMessage(message, "*");
+        //document.getElementById('myIframe').contentWindow.testar();
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '/falar',
+        contentType: 'application/json',
+        data: JSON.stringify({ texto: response }),
+        success: function(response_gpt) {
+            //response = response_gpt
+        }
+    })
+
     const words = response.split(' ');
 
     let wordIndex = 0;
@@ -188,7 +209,7 @@ minhaCheckbox.addEventListener("change", function() {
         //console.log("A checkbox foi desmarcada.");
     }
 
-    fetch('/falar?falar=' + falar, {
+    fetch('/habilita_voz?falar=' + falar, {
       method: 'GET', // This is the default, so you can omit it.
       headers: {
         'Content-Type': 'application/json', // Set the content type if needed.
@@ -207,3 +228,33 @@ minhaCheckbox.addEventListener("change", function() {
       console.error('Fetch error:', error);
     });
 });
+
+recordButton.addEventListener("click", function() {
+    var texto = "";
+    try{
+        $.ajax({
+        type: 'GET',
+        url: '/gravar',
+        contentType: 'application/json',
+        data: JSON.stringify({ userText: userHistory }),
+        success: function(response) {
+
+            chatInput.value = response["texto"];
+            handleOutgoingChat();
+        }
+    });
+            }
+           catch (error) {
+                // Add error class to the paragraph element and set error text
+                console.log("Deu ruim no assistente! Tenta de novo!" + error);
+              }
+    // This code will run when the button is clicked
+
+    // You can replace the alert with any code you want to execute.
+});
+
+function jogar_com_chat(dados){
+          //console.log("Teste", dados);
+          chatInput.value = "Jogo da velha" + JSON.stringify(dados) + 'envie sua jogada no formato json como no exemplo {"jogada": 2}';
+            handleOutgoingChat();
+          }

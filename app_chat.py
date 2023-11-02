@@ -5,12 +5,12 @@ import pyttsx3
 import threading
 import json
 import os
-try:
-    import pyfirmata2
-except:
-    print("Instalar pyfirmata2 para usar arduino")
+import pyfirmata2
+import speech_recognition as sr
 
 app = Flask(__name__)
+
+recognizer = sr.Recognizer()
 
 # Check if the config.json file exists
 if os.path.exists('config.json'):
@@ -26,7 +26,9 @@ else:
             "assistente_falante": False,
             "voz_pergunta": 0,
             "voz_resposta": 1,
-            "arduino_porta": "COM1"
+            "arduino_porta": "COM1",
+            "falar_pergunta": False,
+            "falar_resposta": True
         }
     ]
 
@@ -43,6 +45,8 @@ falar_texto = json_data[0]["assistente_falante"]
 voz_pergunta = json_data[0]["voz_pergunta"]
 voz_resposta = json_data[0]["voz_resposta"]
 arduinoBoard = json_data[0]["arduino_porta"]
+falar_pergunta = json_data[0]["falar_pergunta"]
+falar_resposta = json_data[0]["falar_resposta"]
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
@@ -53,8 +57,7 @@ openai.api_key = api_key
 if api_key == "sua-api-key-openai":
     print("Coloque a sua chave no arquivo config.json")
 
-image_file = "01_chatbot_feliz.png"
-
+image_file = "01_chatbot_feliz.gif"
 
 def setar_porta(porta):
     global arduinoBoard
@@ -99,7 +102,7 @@ def thread_falar(resposta_t, voz):
     engine.setProperty('rate', velocidade)
     voices = engine.getProperty('voices')
     for indice, vozes in enumerate(voices):  # listar vozes
-        print(indice, vozes.name)
+        #print(indice, vozes.name) # listar as vozes instaladas
         pass
     engine.setProperty('voice', voices[voz].id)
 
@@ -212,6 +215,13 @@ def generate_answer(messages, modelo):
         print("Erro de excessão:", e)
         return e
 
+
+tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+jogador_atual = "X"
+vencedor = None
+jogadas = 0
+
+
 @app.route('/')
 def assistente_mil_grau():
     return render_template('index_chat.html')
@@ -232,10 +242,11 @@ def update_image():
     # Update the image file variable based on some condition
     # In this example, we toggle between two images
     global image_file
-    image_file = "02_chatbot_falando.png" if image_file == "01_chatbot_feliz.png" else "01_chatbot_feliz.png"
+    image_file = "02_chatbot_falando.gif" if image_file == "01_chatbot_feliz.gif" else "01_chatbot_feliz.gif"
 
     # Return the new image file path
     return jsonify(image_file)
+
 
 @app.route('/actual_image_file', methods=['GET', 'POST'])
 def actual_image_file():
@@ -249,13 +260,13 @@ def enviar():
 
     data = request.get_json()
 
-    if falar_texto:
+    if falar_texto and falar_pergunta:
         pergunta = data["userText"][-1]["content"]
         pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
     response = generate_answer(data["userText"], model)
 
-    if falar_texto:
+    if falar_texto and falar_pergunta:
         pergunta_thread.join()
     try:
         resposta = response.choices[0].message.content
@@ -264,22 +275,29 @@ def enviar():
         Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo Config!\n\n Resposta:
         """ + str(response) + "!! \n\nErro: " + str(e)
 
-    if falar_texto:
-        falar_thread = threading.Thread(target=thread_falar, args=(resposta[:resposta.find("Resposta:")], voz_resposta))
+    return resposta
+
+@app.route('/falar', methods=['POST'])
+def falar():
+    global image_file
+    texto = request.get_json()
+    if falar_texto and falar_resposta:
+        image_file = "01_chatbot_feliz.gif"
+        update_image()
+
+        falar_thread = threading.Thread(target=thread_falar, args=(texto["texto"], voz_resposta))
         falar_thread.start()
 
         while falar_thread.is_alive():
-            update_image()
+            #update_image()
             time.sleep(0.18)
             print("falando")
-        image_file = "02_chatbot_falando.png"
+        image_file = "02_chatbot_falando.gif"
         update_image()
+    return {"ok": "ok"}
 
-    return resposta
-
-
-@app.route('/falar', methods=['GET'])
-def falar():
+@app.route('/habilita_voz', methods=['GET'])
+def habilita_voz():
     global falar_texto
     falar_texto = bool(request.args.get('falar'))
 
@@ -298,6 +316,72 @@ def falar():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+
+@app.route('/gravar')
+def gravar():
+    with sr.Microphone() as source:
+        print("Pressione o botão e fale...")
+        audio = recognizer.listen(source)
+    try:
+        # Use a biblioteca de reconhecimento de voz para converter o áudio em texto
+        text = recognizer.recognize_google(audio, language="pt-BR")
+        print("Texto reconhecido: " + text)
+    except sr.UnknownValueError:
+        print("Não foi possível entender o áudio")
+    except sr.RequestError as e:
+        print("Erro na solicitação: {0}".format(e))
+    return {"texto": text}
+
+
+@app.route('/jogo.html')
+def jogo():
+    return render_template('jogo.html', tabuleiro=tabuleiro, jogador_atual=jogador_atual, vencedor=vencedor)
+
+
+@app.route('/atualizar_jogada', methods=['POST'])
+def atualizar_jogada():
+    global jogador_atual, vencedor, jogadas, tabuleiro
+    data = request.get_json()
+    posicao = data['posicao'] - 1
+    jogadas += 1
+
+    if not tabuleiro[posicao] in ["X", "O"] and not vencedor:
+        tabuleiro[posicao] = jogador_atual
+
+        if verificar_vencedor(jogador_atual):
+            vencedor = jogador_atual
+
+        elif jogadas >= 9:
+            vencedor = "Empate"
+
+        jogador_atual = "X" if jogador_atual == "O" else "O"
+
+        return jsonify({'tabuleiro': tabuleiro, 'vencedor': vencedor, 'jogador_atual': jogador_atual})
+
+    tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    jogador_atual = "X"
+    vencedor = None
+    jogadas = 0
+
+    return jsonify({'tabuleiro': tabuleiro, 'vencedor': vencedor, 'jogador_atual': jogador_atual})
+
+
+@app.route('/pegar_dados', methods=['POST'])
+def pegar_dados():
+    return jsonify({'tabuleiro': tabuleiro, 'vencedor': vencedor, 'jogador_atual': jogador_atual})
+
+
+def verificar_vencedor(jogador):
+    # Lógica para verificar se um jogador venceu
+    return ((tabuleiro[0] == tabuleiro[1] == tabuleiro[2] == jogador) or
+            (tabuleiro[3] == tabuleiro[4] == tabuleiro[5] == jogador) or
+            (tabuleiro[6] == tabuleiro[7] == tabuleiro[8] == jogador) or
+            (tabuleiro[0] == tabuleiro[3] == tabuleiro[6] == jogador) or
+            (tabuleiro[1] == tabuleiro[4] == tabuleiro[7] == jogador) or
+            (tabuleiro[2] == tabuleiro[5] == tabuleiro[8] == jogador) or
+            (tabuleiro[0] == tabuleiro[4] == tabuleiro[8] == jogador) or
+            (tabuleiro[2] == tabuleiro[4] == tabuleiro[6] == jogador))
 
 
 if __name__ == '__main__':
