@@ -79,7 +79,26 @@ const getChatResponse = async (incomingChatDiv) => {
             parent.postMessage(message, "*");
     }*/
 
-    if(ativa_falar == true){
+
+
+    const words = response.split(' ');
+
+    let wordIndex = 0;
+
+    // Function to add words word by word
+    function addWord() {
+        var delay_palavras = 50
+        if(ativa_falar){
+            delay_palavras = 300
+        }
+        if (wordIndex < words.length) {
+            pElement.textContent += words[wordIndex] + ' ';
+            wordIndex++;
+            setTimeout(addWord, delay_palavras); // Adjust the delay (in milliseconds) as needed
+        }
+    }
+
+    if(ativa_falar){
         console.log("Ativ", ativa_falar)
         $.ajax({
             type: 'POST',
@@ -90,19 +109,6 @@ const getChatResponse = async (incomingChatDiv) => {
                 //response = response_gpt
             }
         })
-    }
-
-    const words = response.split(' ');
-
-    let wordIndex = 0;
-
-    // Function to add words word by word
-    function addWord() {
-        if (wordIndex < words.length) {
-            pElement.textContent += words[wordIndex] + ' ';
-            wordIndex++;
-            setTimeout(addWord, 50); // Adjust the delay (in milliseconds) as needed
-        }
     }
 
     // Start adding words
