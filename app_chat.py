@@ -118,7 +118,7 @@ def generate_answer(messages, modelo):
         response = openai.ChatCompletion.create(
             model=modelo,
             messages=messages,
-            temperature=1.0,
+            temperature=0.0,
             functions=[
                 {
                     "name": "setar_porta",

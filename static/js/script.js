@@ -46,15 +46,38 @@ const getChatResponse = async (incomingChatDiv) => {
 
     //pElement.textContent = response;
     //response = response
+
+    var regex = /{[^}]*}/;
+    var correspondencias = response.match(regex);
+
+    // Verifique se houve correspondência
+    if (correspondencias) {
+        // A primeira correspondência na string é o JSON
+        var jsonEncontrado = correspondencias[0];
+
+        // Remova qualquer texto antes ou depois do JSON
+        jsonEncontrado = jsonEncontrado.replace(/.*{/,'{');
+        //console.log("Encontrei", jsonEncontrado)
+
+        // Analise o JSON
+        try {
+            //var response = JSON.parse(jsonEncontrado);
+            var message = {
+                jogada: jsonEncontrado // Function name to call in Child 1
+            };
+            parent.postMessage(message, "*");
+        } catch (erro) {
+            console.error('Erro ao analisar o JSON:', erro);
+        }
+    }
+    /*
     if(response.startsWith('{"jogada"')){
         jogada = JSON.parse(response);
-        //console.log("Bot Jogando", jogada, jogada["jogada"]);
         var message = {
                 jogada: response // Function name to call in Child 1
             };
             parent.postMessage(message, "*");
-        //document.getElementById('myIframe').contentWindow.testar();
-    }
+    }*/
 
     $.ajax({
         type: 'POST',
@@ -254,7 +277,9 @@ recordButton.addEventListener("click", function() {
 });
 
 function jogar_com_chat(dados){
-          //console.log("Teste", dados);
-          chatInput.value = "Jogo da velha" + JSON.stringify(dados) + 'envie sua jogada no formato json como no exemplo {"jogada": 2}';
-            handleOutgoingChat();
-          }
+    var texto_jogada = 'Jogo da velha. Sua jogada, você é o "' + dados["jogador_atual"] +
+    '" e o tabuleiro está assim: ' + dados["tabuleiro"] +
+    '. Somente responda sua jogada no formato JSON como nos exemplos: {"jogada": 2} ou {"jogada": 7}';
+    chatInput.value = ((dados["vencedor"] === "X" || dados["vencedor"] === "O") ? "Vencedor: " + dados["vencedor"] : texto_jogada)
+    handleOutgoingChat();
+    }
