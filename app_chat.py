@@ -12,10 +12,12 @@ app = Flask(__name__)
 
 recognizer = sr.Recognizer()
 
-# Check if the config.json file exists
-if os.path.exists('config.json'):
+file_path = 'config_img.json'  # Replace with the path to your file
+
+# Check if the config_img.json file exists
+if os.path.exists(file_path):
     # Read the JSON data from the existing file
-    with open('config.json', 'r') as file:
+    with open(file_path, 'r') as file:
         json_data = json.load(file)
 else:
     # If the file doesn't exist, create it with specific content
@@ -32,7 +34,7 @@ else:
         }
     ]
 
-    with open('config.json', 'w') as file:
+    with open(file_path, 'w') as file:
         json.dump(initial_data, file, indent=4)
 
     # Set the initial data to the json_data variable
@@ -55,43 +57,42 @@ print("Falar Texto:", falar_texto)
 openai.api_key = api_key
 
 if api_key == "sua-api-key-openai":
-    print("Coloque a sua chave no arquivo config.json")
+    print("Coloque a sua chave no arquivo config_img.json")
 
 image_file = "01_chatbot_feliz.gif"
 
 def setar_porta(porta):
     global arduinoBoard
 
-    print("Setando porta")
-    print("Dados", porta)
+    #print("Setando porta")
+    #print("Dados", porta)
     resposta = {
         "porta": porta,
     }
     try:
         arduinoBoard = pyfirmata2.Arduino(porta)
 
-        json_data[0]["arduino_porta"] = porta
-
-        # Save the updated JSON data back to the file
-        try:
-            with open("config.json", "w") as file:
-                json.dump(json_data, file, indent=4)
-        except Exception as e:
-            print("Deu ruim gravando", e)
+        if not porta == json_data[0]["arduino_porta"]:
+            json_data[0]["arduino_porta"] = porta
+            try:
+                with open(file_path, "w") as file:
+                    json.dump(json_data, file, indent=4)
+            except Exception as e:
+                print("Deu ruim gravando", e)
 
         return json.dumps(resposta)
     except Exception as e:
         return "Deu ruim: " + str(e)
 
-def setar_pino(pino, estado):
-    print("Setando pino")
-    print("Dados", pino, estado)
+def setar_pino(pino, liga):
+    #print("Setando pino")
+    #print("Dados", pino, liga)
     resposta = {
         "pino": pino,
-        "estado": estado,
+        "liga": liga,
     }
     try:
-        arduinoBoard.digital[pino].write(estado)
+        arduinoBoard.digital[pino].write(liga)
         return json.dumps(resposta)
     except Exception as e:
         return "Deu ruim: " + str(e)
@@ -111,14 +112,15 @@ def thread_falar(resposta_t, voz):
     print("Falando")
     engine.runAndWait()
     end = time.time()
-    print("Duracao", end - start)
+    #print("Duracao", end - start)
+    engine.stop()
 
 def generate_answer(messages, modelo):
     try:
         response = openai.ChatCompletion.create(
             model=modelo,
             messages=messages,
-            temperature=0.0,
+            temperature=0.5,
             functions=[
                 {
                     "name": "setar_porta",
@@ -133,14 +135,14 @@ def generate_answer(messages, modelo):
                 },
                 {
                     "name": "setar_pino",
-                    "description": "Ligar ou desligar o estado de um pino do arduino",
+                    "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. Você deve receber um pedido para desligar ou ligar o LED ou pino e será informado o número do pino ou LED.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "pino": {"type": "integer", "description": "Pino do arduino"},
-                            "estado": {"type": "boolean", "description": "true of false"}
+                            "pino": {"type": "integer", "description": "Pino ou LED do arduino"},
+                            "liga": {"type": "boolean", "description": "Ligar ou desligar o LED ou pino"}
                         },
-                        "required": ["pino", "estado"],
+                        "required": ["pino", "liga"],
                     },
                 }
             ],
@@ -164,7 +166,7 @@ def generate_answer(messages, modelo):
             if function_name == "setar_pino":
                 function_response = setar_pino(
                     pino=function_args.get("pino"),
-                    estado=function_args.get("estado"),
+                    liga=function_args.get("liga"),
                 )
 
                 # Passo 4 - opcional , manda pro modelo a resposta da chamada de funcao
@@ -178,9 +180,10 @@ def generate_answer(messages, modelo):
                 )
                 second_response = openai.ChatCompletion.create(
                         model=modelo,
-                        messages=messages
+                        messages=messages,
+                        timeout=10
                     )
-                print(second_response)
+                #print(second_response)
                 print("Segunda Resposta:", second_response["choices"][0]["message"]['content'])
                 response = second_response
                 response["choices"][0]["message"]['content'] = "COMANDO: " + response["choices"][0]["message"][
@@ -203,7 +206,7 @@ def generate_answer(messages, modelo):
                         model=modelo,
                         messages=messages
                     )
-                print(second_response)
+                #print(second_response)
                 print("Segunda Resposta:", second_response["choices"][0]["message"]['content'])
                 response = second_response
                 response["choices"][0]["message"]['content'] = "COMANDO: " + response["choices"][0]["message"][
@@ -291,7 +294,8 @@ def falar():
         while falar_thread.is_alive():
             #update_image()
             time.sleep(0.18)
-            print("falando")
+            #print("falando")
+        print("Falou")
         image_file = "02_chatbot_falando.gif"
         update_image()
     return {"ok": "ok"}
@@ -299,18 +303,37 @@ def falar():
 @app.route('/habilita_voz', methods=['GET'])
 def habilita_voz():
     global falar_texto
-    falar_texto = bool(request.args.get('falar'))
+    falar_texto = True if request.args.get('falar') == "true" else False
 
     json_data[0]["assistente_falante"] = falar_texto
 
     # Save the updated JSON data back to the file
     try:
-        with open("config.json", "w") as file:
-            json.dump(json_data, file, indent=4)
+        with open(file_path, "w") as file_voz:
+            json.dump(json_data, file_voz, indent=4)
+
+        def is_file_open(file_path):
+            try:
+                with open(file_path, 'r'):
+                    return False  # The file is not open
+            except IOError:
+                return True  # The file is open
+
+        if is_file_open(file_path):
+            print(f'The file "{file_path}" is open by another process.')
+        else:
+            print(f'The file "{file_path}" is not open.')
+
+        #file_voz = open('config_img.json', 'w')
+        #json.dump(json_data, file_voz, indent=4)
+        #file_voz.close()
+
     except Exception as e:
         print("Deu ruim gravando", e)
+        #file_voz = open('config_img.json', 'r')
+        #os.close(file_voz.fileno())
 
-    return {"ok":"Ok"}
+    return {"Falar": falar_texto}
 
 
 @app.route('/about')

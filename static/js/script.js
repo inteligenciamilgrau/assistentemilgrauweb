@@ -226,10 +226,9 @@ if (minhaCheckbox.checked) {
 minhaCheckbox.addEventListener("change", function() {
     falar = ""
     if (minhaCheckbox.checked) {
-        //console.log("A checkbox foi marcada.");
         falar = "true"
     } else {
-        //console.log("A checkbox foi desmarcada.");
+        falar = "false"
     }
 
     fetch('/habilita_voz?falar=' + falar, {
