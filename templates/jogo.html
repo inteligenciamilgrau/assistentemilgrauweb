@@ -70,7 +70,19 @@
 
             function atualizarTabuleiro(tabuleiro) {
                 for (var i = 0; i < tabuleiro.length; i++) {
-                    document.getElementsByTagName('td')[i].innerText = tabuleiro[i];
+                    var cell = document.getElementsByTagName('td')[i];
+                    // Apply styles based on cell content
+                    if (tabuleiro[i] === 'X') {
+                        cell.style.backgroundColor = 'blue';
+                        cell.style.color = 'white';
+                    } else if (tabuleiro[i] === 'O') {
+                        cell.style.backgroundColor = 'red';
+                        cell.style.color = 'white';
+                    } else {
+                        // Reset styles for empty cells
+                        cell.style.backgroundColor = '';
+                        cell.style.color = '';
+                    }
                 }
             }
 
