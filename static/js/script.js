@@ -79,15 +79,18 @@ const getChatResponse = async (incomingChatDiv) => {
             parent.postMessage(message, "*");
     }*/
 
-    $.ajax({
-        type: 'POST',
-        url: '/falar',
-        contentType: 'application/json',
-        data: JSON.stringify({ texto: response }),
-        success: function(response_gpt) {
-            //response = response_gpt
-        }
-    })
+    if(ativa_falar == true){
+        console.log("Ativ", ativa_falar)
+        $.ajax({
+            type: 'POST',
+            url: '/falar',
+            contentType: 'application/json',
+            data: JSON.stringify({ texto: response }),
+            success: function(response_gpt) {
+                //response = response_gpt
+            }
+        })
+    }
 
     const words = response.split(' ');
 
@@ -221,17 +224,17 @@ if (minhaCheckbox.checked) {
     console.log("A checkbox não está marcada.");
 }
 */
+var ativa_falar = document.getElementById('minhaCheckbox').checked
 
 // Adicione um ouvinte de evento para detectar alterações na checkbox
 minhaCheckbox.addEventListener("change", function() {
-    falar = ""
     if (minhaCheckbox.checked) {
-        falar = "true"
+        ativa_falar = true
     } else {
-        falar = "false"
+        ativa_falar = false
     }
 
-    fetch('/habilita_voz?falar=' + falar, {
+    fetch('/habilita_voz?falar=' + ativa_falar, {
       method: 'GET', // This is the default, so you can omit it.
       headers: {
         'Content-Type': 'application/json', // Set the content type if needed.

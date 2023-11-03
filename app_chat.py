@@ -275,7 +275,7 @@ def enviar():
         resposta = response.choices[0].message.content
     except Exception as e:
         resposta = """
-        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo Config!\n\n Resposta:
+        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo "config_img.json"!\n\n Resposta:
         """ + str(response) + "!! \n\nErro: " + str(e)
 
     return resposta
