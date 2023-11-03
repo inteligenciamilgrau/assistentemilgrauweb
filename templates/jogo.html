@@ -71,6 +71,7 @@
             function atualizarTabuleiro(tabuleiro) {
                 for (var i = 0; i < tabuleiro.length; i++) {
                     var cell = document.getElementsByTagName('td')[i];
+                    cell.innerText = tabuleiro[i];
                     // Apply styles based on cell content
                     if (tabuleiro[i] === 'X') {
                         cell.style.backgroundColor = 'blue';
