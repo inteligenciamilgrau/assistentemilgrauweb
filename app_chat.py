@@ -95,7 +95,8 @@ def setar_pino(pino, liga):
         arduinoBoard.digital[pino].write(liga)
         return json.dumps(resposta)
     except Exception as e:
-        return "Deu ruim: " + str(e)
+        print("Falhou", str(e))
+        return json.dumps({"error":"Deu ruim"})
 
 def thread_falar(resposta_t, voz):
     velocidade = 180
@@ -117,102 +118,106 @@ def thread_falar(resposta_t, voz):
 
 def generate_answer(messages, modelo):
     try:
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model=modelo,
             messages=messages,
             temperature=0.5,
-            functions=[
+            tools=[
                 {
-                    "name": "setar_porta",
-                    "description": "Configurar a porta do arduino",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "porta": {"type": "string", "description": "Porta do arduino"},
+                    "type": "function",
+                    "function": {
+                        "name": "setar_porta",
+                        "description": "Configurar o arduino em alguma porta",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "porta": {"type": "string", "description": "Porta do arduino"},
+                            },
+                            "required": ["porta"],
                         },
-                        "required": ["porta"],
                     },
                 },
                 {
-                    "name": "setar_pino",
-                    "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. Você deve receber um pedido para desligar ou ligar o LED ou pino e será informado o número do pino ou LED.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "pino": {"type": "integer", "description": "Pino ou LED do arduino"},
-                            "liga": {"type": "boolean", "description": "Ligar ou desligar o LED ou pino"}
+                    "type":"function",
+                    "function": {
+                        "name": "setar_pino",
+                        "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. Você deve receber um pedido para desligar ou ligar o LED ou pino e será informado o número do pino ou LED.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "pino": {"type": "integer", "description": "Pino ou LED do arduino"},
+                                "liga": {"type": "boolean", "description": "Ligar ou desligar o LED ou pino"}
+                            },
+                            "required": ["pino", "liga"],
                         },
-                        "required": ["pino", "liga"],
-                    },
+                    }
                 }
             ],
-            function_call="auto",
+            tool_choice="auto",
         )
-        first_response = response["choices"][0]["message"]
+        first_response = response.choices[0].message
         print("\n###################################################")
-        print("Primeira resposta:", first_response['content'])
+        print("Primeira resposta:", first_response.content)
+        if first_response.content is None:
+            first_response.content = ""
+        if first_response.function_call is None:
+            del first_response.function_call
+
+        tool_calls = first_response.tool_calls
 
         # Passo 2, verifica se o modelo quer chamar uma funcao
-        if first_response.get("function_call"):
-            function_name = first_response["function_call"]["name"]
-            function_args = json.loads(first_response["function_call"]["arguments"])
+        if tool_calls:
+            available_functions = {
+                "setar_porta": setar_porta,
+                "setar_pino": setar_pino
+            }
 
-            print("************************")
-            print("Detectou uma função", function_name, function_args)
-            print("************************")
+            messages.append(first_response)
+            for tool_call in tool_calls:
 
-            # Passo 3, chama a funcao
-            # Detalhe: a resposta em JSON do modelo pode não ser um JSON valido
-            if function_name == "setar_pino":
-                function_response = setar_pino(
-                    pino=function_args.get("pino"),
-                    liga=function_args.get("liga"),
-                )
+                function_name = tool_call.function.name
+                function_to_call = available_functions[function_name]
+                function_args = json.loads(tool_call.function.arguments)
 
-                # Passo 4 - opcional , manda pro modelo a resposta da chamada de funcao
-                messages.append(first_response)  # extend conversation with assistant's reply
+                print("************************")
+                print("Detectou uma função", function_name, function_args)
+                print("************************")
+
+                function_response = None
+
+                if function_name == "setar_pino":
+                    function_response = function_to_call(
+                        pino=function_args.get("pino"),
+                        liga=function_args.get("liga"),
+                    )
+                elif function_name == "setar_porta":
+                    function_response = function_to_call(
+                        porta=function_args.get("porta"),
+                    )
+                else:
+                    print("Nao achei a funcao pedida")
+
+                print("function_response", function_response)
+
                 messages.append(
                     {
-                        "role": "function",
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
                         "name": function_name,
                         "content": function_response,
                     }
                 )
-                second_response = openai.ChatCompletion.create(
-                        model=modelo,
-                        messages=messages,
-                        timeout=10
-                    )
-                #print(second_response)
-                print("Segunda Resposta:", second_response["choices"][0]["message"]['content'])
-                response = second_response
-                response["choices"][0]["message"]['content'] = "COMANDO: " + response["choices"][0]["message"][
-                    'content']
-            elif function_name == "setar_porta":
-                function_response = setar_porta(
-                    porta=function_args.get("porta"),
-                )
 
-                # Passo 4 - opcional , manda pro modelo a resposta da chamada de funcao
-                messages.append(first_response)  # extend conversation with assistant's reply
-                messages.append(
-                    {
-                        "role": "function",
-                        "name": function_name,
-                        "content": function_response,
-                    }
-                )
-                second_response = openai.ChatCompletion.create(
-                        model=modelo,
-                        messages=messages
-                    )
-                #print(second_response)
-                print("Segunda Resposta:", second_response["choices"][0]["message"]['content'])
-                response = second_response
-                response["choices"][0]["message"]['content'] = "COMANDO: " + response["choices"][0]["message"][
-                    'content']
-            else:
-                print("Nao achei a funcao pedida")
+            second_response = openai.chat.completions.create(
+                model=modelo,
+                messages=messages,
+            )
+
+            print("Segunda Resposta:", second_response.choices[0].message.content)
+            response = second_response
+            response.choices[0].message.content = "COMANDO: " + response.choices[0].message.content
+
+            return response
         return response
     except Exception as e:
         print("Erro de excessão:", e)
