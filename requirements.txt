@@ -3,3 +3,4 @@ openai
 pyttsx3
 SpeechRecognition
 pyfirmata2
+PyPDF2

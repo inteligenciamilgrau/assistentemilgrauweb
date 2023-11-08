@@ -291,3 +291,4 @@ function jogar_com_chat(dados){
     chatInput.value = ((dados["vencedor"] === "X" || dados["vencedor"] === "O") ? "Vencedor: " + dados["vencedor"] : texto_jogada)
     handleOutgoingChat();
     }
+

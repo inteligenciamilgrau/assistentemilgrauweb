@@ -1,5 +1,5 @@
 import time
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file, Response
 import openai
 import pyttsx3
 import threading
@@ -7,6 +7,7 @@ import json
 import os
 import pyfirmata2
 import speech_recognition as sr
+import PyPDF2
 
 app = Flask(__name__)
 
@@ -46,9 +47,11 @@ api_key = json_data[0]["api_key"]
 falar_texto = json_data[0]["assistente_falante"]
 voz_pergunta = json_data[0]["voz_pergunta"]
 voz_resposta = json_data[0]["voz_resposta"]
-arduinoBoard = json_data[0]["arduino_porta"]
+arduinoPorta = json_data[0]["arduino_porta"]
 falar_pergunta = json_data[0]["falar_pergunta"]
 falar_resposta = json_data[0]["falar_resposta"]
+
+arduinoBoard = None
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
@@ -85,6 +88,8 @@ def setar_porta(porta):
         return "Deu ruim: " + str(e)
 
 def setar_pino(pino, liga):
+    global arduinoBoard
+
     #print("Setando pino")
     #print("Dados", pino, liga)
     resposta = {
@@ -92,6 +97,9 @@ def setar_pino(pino, liga):
         "liga": liga,
     }
     try:
+        if arduinoBoard == None:
+            print("Configurando o Arduino na", arduinoPorta)
+            arduinoBoard = pyfirmata2.Arduino(arduinoPorta)
         arduinoBoard.digital[pino].write(liga)
         return json.dumps(resposta)
     except Exception as e:
@@ -151,6 +159,34 @@ def generate_answer(messages, modelo):
                             "required": ["pino", "liga"],
                         },
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "resumir",
+                        "description": "Resumir um pdf.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "arquivo": {"type": "string", "description": "Nome do arquivo"},
+                            },
+                            "required": ["arquivo"],
+                        },
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "listar_arquivos",
+                        "description": "Listar os arquivos de uma pasta.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "pasta": {"type": "string", "description": "Nome da pasta dos arquivos"},
+                            },
+                            "required": ["pasta"],
+                        },
+                    }
                 }
             ],
             tool_choice="auto",
@@ -169,7 +205,9 @@ def generate_answer(messages, modelo):
         if tool_calls:
             available_functions = {
                 "setar_porta": setar_porta,
-                "setar_pino": setar_pino
+                "setar_pino": setar_pino,
+                "resumir": resumir,
+                "listar_arquivos": listar_arquivos
             }
 
             messages.append(first_response)
@@ -193,6 +231,14 @@ def generate_answer(messages, modelo):
                 elif function_name == "setar_porta":
                     function_response = function_to_call(
                         porta=function_args.get("porta"),
+                    )
+                elif function_name == "resumir":
+                    function_response = function_to_call(
+                        arquivo=function_args.get("arquivo"),
+                    )
+                elif function_name == "listar_arquivos":
+                    function_response = function_to_call(
+                        pasta=function_args.get("pasta"),
                     )
                 else:
                     print("Nao achei a funcao pedida")
@@ -415,6 +461,46 @@ def verificar_vencedor(jogador):
             (tabuleiro[2] == tabuleiro[5] == tabuleiro[8] == jogador) or
             (tabuleiro[0] == tabuleiro[4] == tabuleiro[8] == jogador) or
             (tabuleiro[2] == tabuleiro[4] == tabuleiro[6] == jogador))
+
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'file' not in request.files:
+        return 'No file part'
+    filen = request.files['file']
+    if filen:
+        UPLOAD_FOLDER = "./docs"
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+        filename = os.path.join(UPLOAD_FOLDER, filen.filename)
+        filen.save(filename)
+
+    return Response(status=204) #jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
+
+
+def resumir(arquivo):
+    print(arquivo)
+    UPLOAD_FOLDER = ".\\docs"
+    filename_resumo = os.path.join(UPLOAD_FOLDER, arquivo)
+    reader = PyPDF2.PdfReader(filename_resumo)
+    print(reader.pages[0].extract_text())
+    return reader.pages[0].extract_text()
+
+
+def listar_arquivos(pasta):
+    pasta = "./" + pasta
+    if os.path.exists(pasta):
+        if os.path.isdir(pasta):
+            files = [f for f in os.listdir(pasta) if os.path.isfile(os.path.join(pasta, f))]
+            return ', '.join(files)
+        else:
+            return []  # Not a folder
+
+
+@app.route('/view/<filename>')
+def view_pdf(filename):
+    UPLOAD_FOLDER = "./docs"
+    return send_file(os.path.join(UPLOAD_FOLDER, filename))
 
 
 if __name__ == '__main__':
