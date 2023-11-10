@@ -163,8 +163,8 @@ def generate_answer(messages, modelo):
                 {
                     "type": "function",
                     "function": {
-                        "name": "resumir",
-                        "description": "Resumir um pdf.",
+                        "name": "ler_arquivo",
+                        "description": "Ler, resumir ou analisar um pdf.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -181,10 +181,8 @@ def generate_answer(messages, modelo):
                         "description": "Listar os arquivos de uma pasta.",
                         "parameters": {
                             "type": "object",
-                            "properties": {
-                                "pasta": {"type": "string", "description": "Nome da pasta dos arquivos"},
-                            },
-                            "required": ["pasta"],
+                            "properties": {},
+                            "required": [],
                         },
                     }
                 }
@@ -206,7 +204,7 @@ def generate_answer(messages, modelo):
             available_functions = {
                 "setar_porta": setar_porta,
                 "setar_pino": setar_pino,
-                "resumir": resumir,
+                "ler_arquivo": ler_arquivo,
                 "listar_arquivos": listar_arquivos
             }
 
@@ -232,14 +230,12 @@ def generate_answer(messages, modelo):
                     function_response = function_to_call(
                         porta=function_args.get("porta"),
                     )
-                elif function_name == "resumir":
+                elif function_name == "ler_arquivo":
                     function_response = function_to_call(
                         arquivo=function_args.get("arquivo"),
                     )
                 elif function_name == "listar_arquivos":
-                    function_response = function_to_call(
-                        pasta=function_args.get("pasta"),
-                    )
+                    function_response = function_to_call()
                 else:
                     print("Nao achei a funcao pedida")
 
@@ -274,6 +270,8 @@ tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
 jogador_atual = "X"
 vencedor = None
 jogadas = 0
+
+UPLOAD_FOLDER = ".\\docs"
 
 
 @app.route('/')
@@ -469,7 +467,6 @@ def upload():
         return 'No file part'
     filen = request.files['file']
     if filen:
-        UPLOAD_FOLDER = "./docs"
         if not os.path.exists(UPLOAD_FOLDER):
             os.makedirs(UPLOAD_FOLDER)
         filename = os.path.join(UPLOAD_FOLDER, filen.filename)
@@ -478,28 +475,43 @@ def upload():
     return Response(status=204) #jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
 
 
-def resumir(arquivo):
+def ler_arquivo(arquivo, max_paginas = 5):
     print(arquivo)
-    UPLOAD_FOLDER = ".\\docs"
+
     filename_resumo = os.path.join(UPLOAD_FOLDER, arquivo)
     reader = PyPDF2.PdfReader(filename_resumo)
-    print(reader.pages[0].extract_text())
-    return reader.pages[0].extract_text()
+    print("TEXTO DO ARQUIVO >>>>")
+    texto_completo = ""
+    total_paginas = len(reader.pages)
+    if total_paginas > max_paginas:
+        total_paginas = max_paginas
+    for i in range(total_paginas):
+        current_page = reader.pages[i]
+        print("===================")
+        print("Content on page:" + str(i + 1))
+        print("===================")
+        print(current_page.extract_text())
+        texto_completo += "=================== Content on page:" + str(i + 1) + "===================\n" + current_page.extract_text()
+    print("<<<<<<<< FIM DO TEXTO")
+    return texto_completo
 
 
-def listar_arquivos(pasta):
+def listar_arquivos(pasta="docs"):
     pasta = "./" + pasta
     if os.path.exists(pasta):
         if os.path.isdir(pasta):
             files = [f for f in os.listdir(pasta) if os.path.isfile(os.path.join(pasta, f))]
             return ', '.join(files)
         else:
-            return []  # Not a folder
+            return "Nenhum arquivo encontrado."  # Not a folder
+    else:
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+        return "Nenhum arquivo encontrado."
 
 
 @app.route('/view/<filename>')
 def view_pdf(filename):
-    UPLOAD_FOLDER = "./docs"
     return send_file(os.path.join(UPLOAD_FOLDER, filename))
 
 
