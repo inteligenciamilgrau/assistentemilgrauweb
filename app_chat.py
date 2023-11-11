@@ -52,6 +52,7 @@ falar_pergunta = json_data[0]["falar_pergunta"]
 falar_resposta = json_data[0]["falar_resposta"]
 
 arduinoBoard = None
+variaveis_locais = locals()
 
 # Now you have two variables, model and api_key, containing the values from the JSON
 print("Model:", model)
@@ -67,16 +68,12 @@ image_file = "01_chatbot_feliz.gif"
 def setar_porta(porta):
     global arduinoBoard
 
-    #print("Setando porta")
-    #print("Dados", porta)
-    resposta = {
-        "porta": porta,
-    }
+    resposta = porta["porta"]
     try:
-        arduinoBoard = pyfirmata2.Arduino(porta)
+        arduinoBoard = pyfirmata2.Arduino(porta["porta"])
 
-        if not porta == json_data[0]["arduino_porta"]:
-            json_data[0]["arduino_porta"] = porta
+        if not porta["porta"] == json_data[0]["arduino_porta"]:
+            json_data[0]["arduino_porta"] = porta["porta"]
             try:
                 with open(file_path, "w") as file:
                     json.dump(json_data, file, indent=4)
@@ -87,20 +84,15 @@ def setar_porta(porta):
     except Exception as e:
         return "Deu ruim: " + str(e)
 
-def setar_pino(pino, liga):
+def setar_pino(variaveis):
     global arduinoBoard
 
-    #print("Setando pino")
-    #print("Dados", pino, liga)
-    resposta = {
-        "pino": pino,
-        "liga": liga,
-    }
+    resposta = variaveis
     try:
         if arduinoBoard == None:
             print("Configurando o Arduino na", arduinoPorta)
             arduinoBoard = pyfirmata2.Arduino(arduinoPorta)
-        arduinoBoard.digital[pino].write(liga)
+        arduinoBoard.digital[variaveis["pino"]].write(variaveis["liga"])
         return json.dumps(resposta)
     except Exception as e:
         print("Falhou", str(e))
@@ -123,6 +115,7 @@ def thread_falar(resposta_t, voz):
     end = time.time()
     #print("Duracao", end - start)
     engine.stop()
+
 
 def generate_answer(messages, modelo):
     try:
@@ -201,12 +194,11 @@ def generate_answer(messages, modelo):
 
         # Passo 2, verifica se o modelo quer chamar uma funcao
         if tool_calls:
-            available_functions = {
-                "setar_porta": setar_porta,
-                "setar_pino": setar_pino,
-                "ler_arquivo": ler_arquivo,
-                "listar_arquivos": listar_arquivos
-            }
+
+            def listar_funcoes():
+                return {nome: objeto for nome, objeto in variaveis_locais.items() if callable(objeto)}
+
+            available_functions = listar_funcoes()
 
             messages.append(first_response)
             for tool_call in tool_calls:
@@ -219,25 +211,7 @@ def generate_answer(messages, modelo):
                 print("Detectou uma função", function_name, function_args)
                 print("************************")
 
-                function_response = None
-
-                if function_name == "setar_pino":
-                    function_response = function_to_call(
-                        pino=function_args.get("pino"),
-                        liga=function_args.get("liga"),
-                    )
-                elif function_name == "setar_porta":
-                    function_response = function_to_call(
-                        porta=function_args.get("porta"),
-                    )
-                elif function_name == "ler_arquivo":
-                    function_response = function_to_call(
-                        arquivo=function_args.get("arquivo"),
-                    )
-                elif function_name == "listar_arquivos":
-                    function_response = function_to_call()
-                else:
-                    print("Nao achei a funcao pedida")
+                function_response = function_to_call(function_args)
 
                 print("function_response", function_response)
 
@@ -475,28 +449,28 @@ def upload():
     return Response(status=204) #jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
 
 
-def ler_arquivo(arquivo, max_paginas = 5):
-    print(arquivo)
+def ler_arquivo(variaveis, max_paginas=5):
+    arquivo = variaveis["arquivo"]
 
     filename_resumo = os.path.join(UPLOAD_FOLDER, arquivo)
     reader = PyPDF2.PdfReader(filename_resumo)
-    print("TEXTO DO ARQUIVO >>>>")
+    #print("TEXTO DO ARQUIVO >>>>")
     texto_completo = ""
     total_paginas = len(reader.pages)
     if total_paginas > max_paginas:
         total_paginas = max_paginas
     for i in range(total_paginas):
         current_page = reader.pages[i]
-        print("===================")
-        print("Content on page:" + str(i + 1))
-        print("===================")
-        print(current_page.extract_text())
+        #print("===================")
+        #print("Content on page:" + str(i + 1))
+        #print("===================")
+        #print(current_page.extract_text())
         texto_completo += "=================== Content on page:" + str(i + 1) + "===================\n" + current_page.extract_text()
-    print("<<<<<<<< FIM DO TEXTO")
+    #print("<<<<<<<< FIM DO TEXTO")
     return texto_completo
 
 
-def listar_arquivos(pasta="docs"):
+def listar_arquivos(variaveis, pasta="docs"):
     pasta = "./" + pasta
     if os.path.exists(pasta):
         if os.path.isdir(pasta):
