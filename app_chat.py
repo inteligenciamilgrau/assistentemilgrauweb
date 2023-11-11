@@ -74,8 +74,8 @@ def setar_porta(porta):
         if not porta["porta"] == json_data[0]["arduino_porta"]:
             json_data[0]["arduino_porta"] = porta["porta"]
             try:
-                with open(file_path, "w") as file:
-                    json.dump(json_data, file, indent=4)
+                with open(os.path.join(ACTUAL_FOLDER + file_path), "w") as file_porta:
+                    json.dump(json_data, file_porta, indent=4)
             except Exception as e:
                 print("Deu ruim gravando", e)
 
@@ -255,7 +255,8 @@ jogador_atual = "X"
 vencedor = None
 jogadas = 0
 
-UPLOAD_FOLDER = ".\\docs"
+ACTUAL_FOLDER = os.getcwd()
+UPLOAD_FOLDER = ACTUAL_FOLDER + "\\docs"
 
 
 @app.route('/')
@@ -340,21 +341,24 @@ def falar():
 def salvar_config():
     global file_path
 
-    def is_file_open(file_path):
+    diretorio_atual = ACTUAL_FOLDER
+    caminho_completo = os.path.join(diretorio_atual, file_path)
+
+    def is_file_open(caminho_completo):
         try:
-            with open(file_path, 'r'):
+            with open(caminho_completo, 'r'):
                 return False  # The file is not open
         except IOError:
             return True  # The file is open
 
-    if is_file_open(file_path):
+    if is_file_open(caminho_completo):
         print(f'The file "{file_path}" is open by another process.')
     else:
         print(f'The file "{file_path}" is not open.')
 
     # Save the updated JSON data back to the file
     try:
-        with open(file_path, "w") as file_config:
+        with open(caminho_completo, "w") as file_config:
             json.dump(json_data, file_config, indent=4)
 
         #file_voz = open('config_img.json', 'w')
@@ -493,8 +497,8 @@ def ler_arquivo(variaveis, max_paginas=5):
     return texto_completo
 
 
-def listar_arquivos(variaveis, pasta="docs"):
-    pasta = "./" + pasta
+def listar_arquivos(variaveis, pasta=UPLOAD_FOLDER):
+    #pasta = "./" + pasta
     if os.path.exists(pasta):
         if os.path.isdir(pasta):
             files = [f for f in os.listdir(pasta) if os.path.isfile(os.path.join(pasta, f))]
