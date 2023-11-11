@@ -2,7 +2,6 @@ import time
 from flask import Flask, render_template, request, jsonify, send_file, Response
 import openai
 import pyttsx3
-import threading
 import json
 import os
 import pyfirmata2
@@ -82,7 +81,7 @@ def setar_porta(porta):
 
         return json.dumps(resposta)
     except Exception as e:
-        return "Deu ruim: " + str(e)
+        return "Deu ruim. Talvez o arduino esteja em outra porta? Ou está desconectado?: " + str(e)
 
 def setar_pino(variaveis):
     global arduinoBoard
@@ -98,9 +97,17 @@ def setar_pino(variaveis):
         print("Falhou", str(e))
         return json.dumps({"error":"Deu ruim"})
 
-def thread_falar(resposta_t, voz):
-    velocidade = 180
+
+def init_engine():
     engine = pyttsx3.init()
+    return engine
+
+
+def falando(resposta_t, voz):
+    velocidade = 180
+
+    engine = init_engine()
+
     engine.setProperty('rate', velocidade)
     voices = engine.getProperty('voices')
     for indice, vozes in enumerate(voices):  # listar vozes
@@ -111,10 +118,13 @@ def thread_falar(resposta_t, voz):
     start = time.time()
     engine.say(resposta_t)
     print("Falando")
+
     engine.runAndWait()
+    '''
     end = time.time()
     #print("Duracao", end - start)
     engine.stop()
+    '''
 
 
 def generate_answer(messages, modelo):
@@ -185,10 +195,10 @@ def generate_answer(messages, modelo):
         first_response = response.choices[0].message
         print("\n###################################################")
         print("Primeira resposta:", first_response.content)
-        if first_response.content is None:
-            first_response.content = ""
-        if first_response.function_call is None:
-            del first_response.function_call
+        #if first_response.content is None:
+        #    first_response.content = ""
+        #if first_response.function_call is None:
+        #    del first_response.function_call
 
         tool_calls = first_response.tool_calls
 
@@ -288,12 +298,13 @@ def enviar():
 
     if falar_texto and falar_pergunta:
         pergunta = data["userText"][-1]["content"]
-        pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
-        pergunta_thread.start()
+        falando(pergunta, voz_pergunta)
+        #pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
+        #pergunta_thread.start()
     response = generate_answer(data["userText"], model)
 
     if falar_texto and falar_pergunta:
-        pergunta_thread.join()
+        pass #pergunta_thread.join()
     try:
         resposta = response.choices[0].message.content
     except Exception as e:
@@ -311,41 +322,40 @@ def falar():
         image_file = "01_chatbot_feliz.gif"
         update_image()
 
-        falar_thread = threading.Thread(target=thread_falar, args=(texto["texto"], voz_resposta))
-        falar_thread.start()
+        falando(texto["texto"], voz_resposta)
 
-        while falar_thread.is_alive():
+        #falar_thread = threading.Thread(target=thread_falar, args=(texto["texto"], voz_resposta))
+        #falar_thread.start()
+
+        #while falar_thread.is_alive():
             #update_image()
-            time.sleep(0.18)
+        #    time.sleep(0.18)
             #print("falando")
         print("Falou")
         image_file = "02_chatbot_falando.gif"
         update_image()
     return {"ok": "ok"}
 
-@app.route('/habilita_voz', methods=['GET'])
-def habilita_voz():
-    global falar_texto
-    falar_texto = True if request.args.get('falar') == "true" else False
 
-    json_data[0]["assistente_falante"] = falar_texto
+def salvar_config():
+    global file_path
+
+    def is_file_open(file_path):
+        try:
+            with open(file_path, 'r'):
+                return False  # The file is not open
+        except IOError:
+            return True  # The file is open
+
+    if is_file_open(file_path):
+        print(f'The file "{file_path}" is open by another process.')
+    else:
+        print(f'The file "{file_path}" is not open.')
 
     # Save the updated JSON data back to the file
     try:
-        with open(file_path, "w") as file_voz:
-            json.dump(json_data, file_voz, indent=4)
-
-        def is_file_open(file_path):
-            try:
-                with open(file_path, 'r'):
-                    return False  # The file is not open
-            except IOError:
-                return True  # The file is open
-
-        if is_file_open(file_path):
-            print(f'The file "{file_path}" is open by another process.')
-        else:
-            print(f'The file "{file_path}" is not open.')
+        with open(file_path, "w") as file_config:
+            json.dump(json_data, file_config, indent=4)
 
         #file_voz = open('config_img.json', 'w')
         #json.dump(json_data, file_voz, indent=4)
@@ -355,6 +365,19 @@ def habilita_voz():
         print("Deu ruim gravando", e)
         #file_voz = open('config_img.json', 'r')
         #os.close(file_voz.fileno())
+
+
+@app.route('/habilita_voz', methods=['GET'])
+def habilita_voz():
+    global falar_texto
+    falar_texto = True if request.args.get('falar') == "true" else False
+
+    json_data[0]["assistente_falante"] = falar_texto
+
+    salvar_config()
+    #salvar_thread = threading.Thread(target=salvar_config(), args=())
+    #salvar_thread.start()
+    #salvar_thread.join()
 
     return {"Falar": falar_texto}
 
