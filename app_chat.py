@@ -1,4 +1,3 @@
-import time
 from flask import Flask, render_template, request, jsonify, send_file, Response
 import openai
 import pyttsx3
@@ -7,6 +6,8 @@ import os
 import pyfirmata2
 import speech_recognition as sr
 import PyPDF2
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -24,6 +25,7 @@ else:
     initial_data = [
         {
             "model": "gpt-3.5-turbo",
+            "model_vision": "gpt-4-vision-preview",
             "api_key": "sua-api-key-openai",
             "assistente_falante": False,
             "voz_pergunta": 0,
@@ -42,6 +44,7 @@ else:
 
 # Access the values and store them in separate variables
 model = json_data[0]["model"]
+model_vision = json_data[0]["model_vision"]
 api_key = json_data[0]["api_key"]
 falar_texto = json_data[0]["assistente_falante"]
 voz_pergunta = json_data[0]["voz_pergunta"]
@@ -64,6 +67,7 @@ if api_key == "sua-api-key-openai":
 
 image_file = "01_chatbot_feliz.gif"
 
+
 def setar_porta(porta):
     global arduinoBoard
 
@@ -83,39 +87,35 @@ def setar_porta(porta):
     except Exception as e:
         return "Deu ruim. Talvez o arduino esteja em outra porta? Ou está desconectado?: " + str(e)
 
+
 def setar_pino(variaveis):
     global arduinoBoard
 
     resposta = variaveis
     try:
-        if arduinoBoard == None:
+        if arduinoBoard is None:
             print("Configurando o Arduino na", arduinoPorta)
             arduinoBoard = pyfirmata2.Arduino(arduinoPorta)
         arduinoBoard.digital[variaveis["pino"]].write(variaveis["liga"])
         return json.dumps(resposta)
     except Exception as e:
         print("Falhou", str(e))
-        return json.dumps({"error":"Deu ruim"})
-
-
-def init_engine():
-    engine = pyttsx3.init()
-    return engine
+        return json.dumps({"error": "Deu ruim"})
 
 
 def falando(resposta_t, voz):
     velocidade = 180
 
-    engine = init_engine()
+    engine = pyttsx3.init()
 
     engine.setProperty('rate', velocidade)
     voices = engine.getProperty('voices')
     for indice, vozes in enumerate(voices):  # listar vozes
-        #print(indice, vozes.name) # listar as vozes instaladas
+        print(indice, vozes.name)  # listar as vozes instaladas
         pass
     engine.setProperty('voice', voices[voz].id)
 
-    start = time.time()
+    # start = time.time()
     engine.say(resposta_t)
     print("Falando")
 
@@ -149,10 +149,12 @@ def generate_answer(messages, modelo):
                     },
                 },
                 {
-                    "type":"function",
+                    "type": "function",
                     "function": {
                         "name": "setar_pino",
-                        "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. Você deve receber um pedido para desligar ou ligar o LED ou pino e será informado o número do pino ou LED.",
+                        "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. \
+                        Você deve receber um pedido para desligar ou ligar o LED ou pino e será \
+                        informado o número do pino ou LED.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -195,9 +197,9 @@ def generate_answer(messages, modelo):
         first_response = response.choices[0].message
         print("\n###################################################")
         print("Primeira resposta:", first_response.content)
-        #if first_response.content is None:
+        # if first_response.content is None:
         #    first_response.content = ""
-        #if first_response.function_call is None:
+        # if first_response.function_call is None:
         #    del first_response.function_call
 
         tool_calls = first_response.tool_calls
@@ -212,7 +214,6 @@ def generate_answer(messages, modelo):
 
             messages.append(first_response)
             for tool_call in tool_calls:
-
                 function_name = tool_call.function.name
                 function_to_call = available_functions[function_name]
                 function_args = json.loads(tool_call.function.arguments)
@@ -274,6 +275,10 @@ def avatar():
     return render_template('avatar.html', image_file=image_file)
 
 
+@app.route('/stream.html')
+def stream():
+    return render_template('stream.html')
+
 @app.route('/update_image', methods=['GET', 'POST'])
 def update_image():
     # Update the image file variable based on some condition
@@ -299,21 +304,23 @@ def enviar():
 
     if falar_texto and falar_pergunta:
         pergunta = data["userText"][-1]["content"]
-        falando(pergunta, voz_pergunta)
-        #pergunta_thread = threading.Thread(target=thread_falar, args=(pergunta, voz_pergunta))
-        #pergunta_thread.start()
+        #falando(pergunta, voz_pergunta)
+        pergunta_thread = threading.Thread(target=falando, args=(pergunta, voz_pergunta))
+        pergunta_thread.start()
     response = generate_answer(data["userText"], model)
 
     if falar_texto and falar_pergunta:
-        pass #pergunta_thread.join()
+        pergunta_thread.join()
     try:
         resposta = response.choices[0].message.content
     except Exception as e:
         resposta = """
-        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar sua Chave da OpenAI no arquivo "config_img.json"!\n\n Resposta:
+        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar\
+         sua Chave da OpenAI no arquivo "config_img.json"!\n\n Resposta:
         """ + str(response) + "!! \n\nErro: " + str(e)
 
     return resposta
+
 
 @app.route('/falar', methods=['POST'])
 def falar():
@@ -323,15 +330,15 @@ def falar():
         image_file = "01_chatbot_feliz.gif"
         update_image()
 
-        falando(texto["texto"], voz_resposta)
+        # falando(texto["texto"], voz_resposta)
 
-        #falar_thread = threading.Thread(target=thread_falar, args=(texto["texto"], voz_resposta))
-        #falar_thread.start()
+        falar_thread = threading.Thread(target=falando, args=(texto["texto"], voz_resposta))
+        falar_thread.start()
 
-        #while falar_thread.is_alive():
-            #update_image()
-        #    time.sleep(0.18)
-            #print("falando")
+        while falar_thread.is_alive():
+            update_image()
+            time.sleep(0.18)
+        # print("falando")
         print("Falou")
         image_file = "02_chatbot_falando.gif"
         update_image()
@@ -344,9 +351,9 @@ def salvar_config():
     diretorio_atual = ACTUAL_FOLDER
     caminho_completo = os.path.join(diretorio_atual, file_path)
 
-    def is_file_open(caminho_completo):
+    def is_file_open(caminho_completo_file):
         try:
-            with open(caminho_completo, 'r'):
+            with open(caminho_completo_file, 'r'):
                 return False  # The file is not open
         except IOError:
             return True  # The file is open
@@ -361,14 +368,14 @@ def salvar_config():
         with open(caminho_completo, "w") as file_config:
             json.dump(json_data, file_config, indent=4)
 
-        #file_voz = open('config_img.json', 'w')
-        #json.dump(json_data, file_voz, indent=4)
-        #file_voz.close()
+        # file_voz = open('config_img.json', 'w')
+        # json.dump(json_data, file_voz, indent=4)
+        # file_voz.close()
 
     except Exception as e:
         print("Deu ruim gravando", e)
-        #file_voz = open('config_img.json', 'r')
-        #os.close(file_voz.fileno())
+        # file_voz = open('config_img.json', 'r')
+        # os.close(file_voz.fileno())
 
 
 @app.route('/habilita_voz', methods=['GET'])
@@ -379,9 +386,9 @@ def habilita_voz():
     json_data[0]["assistente_falante"] = falar_texto
 
     salvar_config()
-    #salvar_thread = threading.Thread(target=salvar_config(), args=())
-    #salvar_thread.start()
-    #salvar_thread.join()
+    # salvar_thread = threading.Thread(target=salvar_config(), args=())
+    # salvar_thread.start()
+    # salvar_thread.join()
 
     return {"Falar": falar_texto}
 
@@ -405,11 +412,13 @@ def gravar():
         # Use a biblioteca de reconhecimento de voz para converter o áudio em texto
         text = recognizer.recognize_google(audio, language="pt-BR")
         print("Texto reconhecido: " + text)
+        return {"texto": text}
     except sr.UnknownValueError:
         print("Não foi possível entender o áudio")
     except sr.RequestError as e:
         print("Erro na solicitação: {0}".format(e))
-    return {"texto": text}
+        return {"texto": e}
+    return {"texto": "Não detectou nada"}
 
 
 @app.route('/jogo.html')
@@ -473,7 +482,7 @@ def upload():
         filename = os.path.join(UPLOAD_FOLDER, filen.filename)
         filen.save(filename)
 
-    return Response(status=204) #jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
+    return Response(status=204)  # jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
 
 
 def ler_arquivo(variaveis, max_paginas=5):
@@ -481,24 +490,25 @@ def ler_arquivo(variaveis, max_paginas=5):
 
     filename_resumo = os.path.join(UPLOAD_FOLDER, arquivo)
     reader = PyPDF2.PdfReader(filename_resumo)
-    #print("TEXTO DO ARQUIVO >>>>")
+    # print("TEXTO DO ARQUIVO >>>>")
     texto_completo = ""
     total_paginas = len(reader.pages)
     if total_paginas > max_paginas:
         total_paginas = max_paginas
     for i in range(total_paginas):
         current_page = reader.pages[i]
-        #print("===================")
-        #print("Content on page:" + str(i + 1))
-        #print("===================")
-        #print(current_page.extract_text())
-        texto_completo += "=================== Content on page:" + str(i + 1) + "===================\n" + current_page.extract_text()
-    #print("<<<<<<<< FIM DO TEXTO")
+        # print("===================")
+        # print("Content on page:" + str(i + 1))
+        # print("===================")
+        # print(current_page.extract_text())
+        texto_completo += "=================== Content on page:" + str(
+            i + 1) + "===================\n" + current_page.extract_text()
+    # print("<<<<<<<< FIM DO TEXTO")
     return texto_completo
 
 
 def listar_arquivos(variaveis, pasta=UPLOAD_FOLDER):
-    #pasta = "./" + pasta
+    # pasta = "./" + pasta
     if os.path.exists(pasta):
         if os.path.isdir(pasta):
             files = [f for f in os.listdir(pasta) if os.path.isfile(os.path.join(pasta, f))]

@@ -31,6 +31,7 @@
             <button id="avatarButton">Avatar</button>
             <button id="jogoButton">Jogo da Velha</button>
             <button id="arduinoButton">Arduino</button>
+            <button id="streamButton">ESP32 Stream</button>
             <button id="aboutButton">Sobre</button>
             <form method="POST" action="/upload" enctype="multipart/form-data">
                 <input type="file" name="file">
@@ -59,6 +60,9 @@
         });
         document.getElementById("arduinoButton").addEventListener("click", function () {
             document.getElementById("myIframe").src = "{{ url_for('arduino') }}";
+        });
+        document.getElementById("streamButton").addEventListener("click", function () {
+            document.getElementById("myIframe").src = "{{ url_for('stream') }}";
         });
 
         window.addEventListener("message", function(event) {

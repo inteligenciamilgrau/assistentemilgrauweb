@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Page</title>
+    <style>
+        input {
+            font-size: 14px;
+            width: 300px; /* Make sure the input takes the full width */
+            box-sizing: border-box; /* Include padding and border in the width */
+        }
+        img {
+            width: 100%;
+            max-width: 800px;
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+
+<label for="streamUrl">Stream URL:</label>
+<input type="text" id="streamUrl" value="http://seu_ip_aqui_oh:81/stream">
+
+<button onclick="startStopStream()">Start/Stop Stream</button>
+
+<img id="streamImage" style="display:none">
+
+<script>
+    let streamImage = document.getElementById("streamImage");
+    let streamUrlInput = document.getElementById("streamUrl");
+
+    function startStopStream() {
+        if (streamImage.style.display === "none") {
+            startStream();
+        } else {
+            stopStream();
+        }
+    }
+
+    function startStream() {
+        let streamUrl = streamUrlInput.value;
+        if (streamUrl.trim() === "") {
+            alert("Please enter a valid stream URL");
+            return;
+        }
+
+        streamImage.src = streamUrl;
+        streamImage.style.display = "block";
+    }
+
+    function stopStream() {
+        streamImage.style.display = "none";
+        // Set an empty source to stop loading the image
+        streamImage.src = "";
+    }
+</script>
+
+</body>
+</html>
