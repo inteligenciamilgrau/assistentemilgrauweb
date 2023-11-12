@@ -19,3 +19,6 @@ python app_chat.py
 ## Vídeo Tutorial
 - ChatGPT com Voz em Python Usando Até Arduino e Sabe-se Lá Mais O quê!
 [!["ChatGPT com Voz em Python Usando Até Arduino e Sabe-se Lá Mais O quê!"](https://img.youtube.com/vi/n1-o7rvCCAI/0.jpg)](https://www.youtube.com/watch?v=n1-o7rvCCAI)
+
+- Assistente Falante Com ChatGPT - Parte 3 - Lendo PDF e Em Python Melhor Que a Alexa e a Siri Juntas
+[!["Assistente Falante Com ChatGPT - Parte 3 - Lendo PDF e Em Python Melhor Que a Alexa e a Siri Juntas"](https://img.youtube.com/vi/61OkuatGQtg/0.jpg)](https://www.youtube.com/watch?v=61OkuatGQtg)
