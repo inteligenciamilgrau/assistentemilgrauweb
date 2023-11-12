@@ -198,7 +198,8 @@ def generate_answer(messages, modelo):
                     "type": "function",
                     "function": {
                         "name": "analisar_imagem",
-                        "description": "Ver ou analisar a imagem que tem no stream da camera.",
+                        "description": "Ver ou analisar a imagem que tem no stream da camera.\
+                        Repasse a descrição da imagem sem alterar o texto.",
                         "parameters": {
                             "type": "object",
                             "properties": {},
@@ -250,14 +251,17 @@ def generate_answer(messages, modelo):
                     }
                 )
 
-            second_response = openai.chat.completions.create(
-                model=modelo,
-                messages=messages,
-            )
+            if function_name == "analisar_imagem":
+                response.choices[0].message.content = "COMANDO: " + function_response
+            else:
+                second_response = openai.chat.completions.create(
+                    model=modelo,
+                    messages=messages,
+                )
 
-            print("Segunda Resposta:", second_response.choices[0].message.content)
-            response = second_response
-            response.choices[0].message.content = "COMANDO: " + response.choices[0].message.content
+                print("Segunda Resposta:", second_response.choices[0].message.content)
+                response = second_response
+                response.choices[0].message.content = "COMANDO: " + response.choices[0].message.content
 
             return response
         return response
@@ -552,16 +556,17 @@ def camera_url():
 
 
 def analisar_imagem(variaveis):
-    def encode_image(image_path):
-        if image_path.startswith("http:"):
-            return base64.b64encode(requests.get(image_path).content).decode('utf-8')
+    def encode_image(image_path_encode):
+        if image_path_encode.startswith("http"):
+            return base64.b64encode(requests.get(image_path_encode).content).decode('utf-8')
         else:
-            with open(image_path, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
+            with open(image_path_encode, "rb") as image_file_web:
+                return base64.b64encode(image_file_web.read()).decode('utf-8')
 
-    image_path = "http://ip_intelbras/onvif/snapshot.jpg"
-    image_path = "http://ip_esp32/capture"
+    # image_path = "http://ip_intelbras/onvif/snapshot.jpg"
+    # image_path = "http://ip_esp32/capture"
     image_path = camera_pic_url
+    print("image_path", image_path)
     base64_image = encode_image(image_path)
 
     headers = {
@@ -592,5 +597,7 @@ def analisar_imagem(variaveis):
     }
     resposta = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return resposta.json()['choices'][0]["message"]["content"]
+
+
 if __name__ == '__main__':
     app.run(debug=True)

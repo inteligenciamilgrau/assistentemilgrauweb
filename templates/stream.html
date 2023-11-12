@@ -47,7 +47,11 @@
             return;
         }
 
-        streamImage.src = streamUrl;
+        try {
+            streamImage.src = streamUrl;
+        } catch (error) {
+            console.error("Error setting streamImage src:", error.message);
+        }
 
         streamImage.style.display = "block";
         fetch('/camera_url?camera=' + streamUrl, {

@@ -99,7 +99,6 @@ const getChatResponse = async (incomingChatDiv) => {
     }
 
     if(ativa_falar){
-        console.log("Ativ", ativa_falar)
         $.ajax({
             type: 'POST',
             url: '/falar',
