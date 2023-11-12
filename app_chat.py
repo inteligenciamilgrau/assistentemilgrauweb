@@ -8,6 +8,8 @@ import speech_recognition as sr
 import PyPDF2
 import threading
 import time
+import base64
+import requests
 
 app = Flask(__name__)
 
@@ -52,6 +54,7 @@ voz_resposta = json_data[0]["voz_resposta"]
 arduinoPorta = json_data[0]["arduino_porta"]
 falar_pergunta = json_data[0]["falar_pergunta"]
 falar_resposta = json_data[0]["falar_resposta"]
+camera_pic_url = "http://seu_ip_aqui_oh/capture"
 
 arduinoBoard = None
 variaveis_locais = locals()
@@ -184,6 +187,18 @@ def generate_answer(messages, modelo):
                     "function": {
                         "name": "listar_arquivos",
                         "description": "Listar os arquivos de uma pasta.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
+                        },
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analisar_imagem",
+                        "description": "Ver ou analisar a imagem que tem no stream da camera.",
                         "parameters": {
                             "type": "object",
                             "properties": {},
@@ -526,5 +541,56 @@ def view_pdf(filename):
     return send_file(os.path.join(UPLOAD_FOLDER, filename))
 
 
+@app.route('/camera_url', methods=['GET'])
+def camera_url():
+    global camera_pic_url
+
+    camera_pic_url = str(request.args.get("camera")).replace(":81/stream", "/capture")
+    print("A nova url da camera é", camera_pic_url)
+
+    return Response(status=204)  # jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
+
+
+def analisar_imagem(variaveis):
+    def encode_image(image_path):
+        if image_path.startswith("http:"):
+            return base64.b64encode(requests.get(image_path).content).decode('utf-8')
+        else:
+            with open(image_path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
+
+    image_path = "http://ip_intelbras/onvif/snapshot.jpg"
+    image_path = "http://ip_esp32/capture"
+    image_path = camera_pic_url
+    base64_image = encode_image(image_path)
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    payload = {
+        "model": "gpt-4-vision-preview",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "O que tem nessa imagem?"
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 300
+    }
+    resposta = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+    return resposta.json()['choices'][0]["message"]["content"]
 if __name__ == '__main__':
     app.run(debug=True)

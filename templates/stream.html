@@ -48,7 +48,26 @@
         }
 
         streamImage.src = streamUrl;
+
         streamImage.style.display = "block";
+        fetch('/camera_url?camera=' + streamUrl, {
+          method: 'GET', // This is the default, so you can omit it.
+          headers: {
+            'Content-Type': 'application/json', // Set the content type if needed.
+            // You can add other headers here as needed.
+          },
+          // You can add additional options like credentials, mode, etc.
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response; // Parse the response as JSON
+        })
+        .catch(error => {
+          // Handle errors here
+          console.error('Fetch error:', error);
+        });
     }
 
     function stopStream() {
