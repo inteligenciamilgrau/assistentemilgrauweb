@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente Trabalhador</title>
+    <style>
+        canvas {
+            border: 1px solid #000;
+        }
+
+        #objetivo_completo {
+            position: relative;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: black;
+            z-index: 1; /* Set a higher z-index to place it above the canvas */
+        }
+
+        #gameContainer {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="640" height="480"></canvas>
+        <div id="objetivo_completo"></div>
+    </div>
+
+
+    <script>
+        const TILESIZE = 32;
+        const PLAYER_SPEED = 3;
+        const TILE_SPEED = TILESIZE;
+        const FPS = 60;
+        const keys = {};
+        let showMessage = false;
+
+        const tilemap = [
+            'BBBBBBBBBBBBBBBBBBBB',
+            'B..............B...B',
+            'B..............B...B',
+            'B.......BB........MB',
+            'B..................B',
+            'B..............B...B',
+            'B.........BB...BBBBB',
+            'B..................B',
+            'B...BBBB...........B',
+            'B..................B',
+            'B...........B......B',
+            'BB..BB......B......B',
+            'B....B.............B',
+            'B.H..B.............B',
+            'BBBBBBBBBBBBBBBBBBBBXP',
+        ];
+
+        function getRandomPosition() {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * tilemap[0].length);
+                y = Math.floor(Math.random() * tilemap.length);
+            } while (tilemap[y][x] === 'B');
+            return { x, y };
+        }
+
+
+        let playerX = 2;
+        let playerY = 2;
+
+        let position = getRandomPosition();
+        let xPosition = position.x * TILESIZE;
+        let yPosition = position.y * TILESIZE;
+
+        document.addEventListener('keydown', function (e) {
+            keys[e.keyCode] = true;
+        });
+
+        document.addEventListener('keyup', function (e) {
+            keys[e.keyCode] = false;
+        });
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const playerSpritesheet = new Image();
+        playerSpritesheet.src = "static/img/character.png";
+
+        const terrainSpritesheet = new Image();
+        terrainSpritesheet.src = "static/img/terrain.png";
+
+        class Sprite {
+            constructor(image, x, y, width, height) {
+                this.image = image;
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw(ctx, x, y) {
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.height, x, y, TILESIZE, TILESIZE);
+            }
+        }
+
+        class Player {
+            constructor(x, y, name) {
+                this.x = x * TILESIZE;
+                this.y = y * TILESIZE;
+                this.width = TILESIZE;
+                this.height = TILESIZE;
+                this.facing = 'down';
+                this.animationLoop = 1;
+                this.name = name;
+                this.playerSprite = new Sprite(playerSpritesheet, 3 + (0 * TILESIZE), 2 + (0 * TILESIZE), this.width, this.height);
+            }
+
+            newSprite(xSprite, ySprite){
+                return new Sprite(playerSpritesheet, 3 + (xSprite * TILESIZE), 2 + (ySprite * TILESIZE), this.width, this.height);
+            }
+
+            draw(ctx) {
+                this.playerSprite.draw(ctx, this.x, this.y);
+            }
+
+            update() {
+                this.movement();
+                this.animate();
+            }
+
+            movement() {
+                const originalX = this.x;
+                const originalY = this.y;
+
+                if (keys[37]) {  // Left arrow key
+                    this.x -= PLAYER_SPEED;
+                    this.facing = 'left';
+                }
+                if (keys[39]) {  // Right arrow key
+                    this.x += PLAYER_SPEED;
+                    this.facing = 'right';
+                }
+                if (keys[38]) {  // Up arrow key
+                    this.y -= PLAYER_SPEED;
+                    this.facing = 'up';
+                }
+                if (keys[40]) {  // Down arrow key
+                    this.y += PLAYER_SPEED;
+                    this.facing = 'down';
+                }
+
+                //console.log(Math.floor(this.x/TILESIZE), Math.floor(this.y/TILESIZE));
+
+                // Check for collisions with blocks after movement
+                this.collideBlocks(originalX, originalY);
+            }
+
+            movement_digital(mov) {
+                const originalX = this.x;
+                const originalY = this.y;
+
+                if (mov == "Left") {  // Left arrow key
+                    this.x -= TILE_SPEED;
+                    this.facing = 'left';
+                }
+                if (mov == "Right") {  // Right arrow key
+                    this.x += TILE_SPEED;
+                    this.facing = 'right';
+                }
+                if (mov == "Up") {  // Up arrow key
+                    this.y -= TILE_SPEED;
+                    this.facing = 'up';
+                }
+                if (mov == "Down") {  // Down arrow key
+                    this.y += TILE_SPEED;
+                    this.facing = 'down';
+                }
+
+                // Check for collisions with blocks after movement
+                this.collideBlocks(originalX, originalY);
+            }
+
+            collideBlocks(originalX, originalY) {
+                for (let i = 0; i < tilemap.length; i++) {
+                    for (let j = 0; j < tilemap[i].length; j++) {
+                        const tile = tilemap[i][j];
+                        const x = j * TILESIZE;
+                        const y = i * TILESIZE;
+
+                        if (tile === 'B') {
+                            if (
+                                this.x < x + TILESIZE &&
+                                this.x + this.width > x &&
+                                this.y < y + TILESIZE &&
+                                this.y + this.height > y
+                            ) {
+                                this.x = originalX;
+                                this.y = originalY;
+                            }
+                        } else if (tile === 'X') {
+                            if (
+                                this.x < xPosition + TILESIZE &&
+                                this.x + this.width > xPosition &&
+                                this.y < yPosition + TILESIZE &&
+                                this.y + this.height > yPosition
+                            ) {
+                                // Set showMessage to true when player collides with 'X'
+                                showMessage = true;
+                                // Respawn 'X' to a new random position
+                                position = position = getRandomPosition();
+                                xPosition = position.x * TILESIZE;
+                                yPosition = position.y * TILESIZE;
+                                gold.x = xPosition;
+                                gold.y = yPosition;
+                                //console.log(tilemap);
+                            }
+                        }
+                    }
+                }
+            }
+            animate(){
+                let up_animations = [];
+                let down_animations = [];
+                let left_animations = [];
+                let right_animations = [];
+
+                if(this.facing == "up"){
+                    this.playerSprite = this.newSprite(0, 1);
+                }
+                else if(this.facing == "down"){
+                    this.playerSprite = this.newSprite(0, 0);
+                }
+                else if(this.facing == "left"){
+                    this.playerSprite = this.newSprite(0, 3);
+                }
+                else if(this.facing == "right"){
+                    this.playerSprite = this.newSprite(0, 2);
+                }
+            }
+        }
+
+        const player = new Player(playerX, playerY, "Maria");
+
+        class Gold {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = TILESIZE;
+                this.height = TILESIZE;
+            }
+
+            draw() {
+                //const groundSprite = new Sprite(terrainSpritesheet, 15 * TILESIZE, 1 * TILESIZE, this.width, this.height);
+                const groundSprite = new Sprite(terrainSpritesheet, 18 * TILESIZE, 13 * TILESIZE, this.width, this.height);
+                groundSprite.draw(ctx, this.x, this.y);
+            }
+        }
+
+        const gold = new Gold(xPosition, yPosition);
+
+        class Block {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = TILESIZE;
+                this.height = TILESIZE;
+            }
+
+            draw() {
+                const blockSprite = new Sprite(terrainSpritesheet, 30 * TILESIZE, 14 * TILESIZE, this.width, this.height);
+                blockSprite.draw(ctx, this.x, this.y);
+            }
+        }
+
+        class Ground {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = TILESIZE;
+                this.height = TILESIZE;
+            }
+
+            draw() {
+                const groundSprite = new Sprite(terrainSpritesheet, 2 * TILESIZE, 11 * TILESIZE, this.width, this.height);
+                groundSprite.draw(ctx, this.x, this.y);
+            }
+        }
+
+        function drawTilemap() {
+            for (let i = 0; i < tilemap.length; i++) {
+                for (let j = 0; j < tilemap[i].length; j++) {
+                    const tile = tilemap[i][j];
+                    const x = j * TILESIZE;
+                    const y = i * TILESIZE;
+
+                    const grass = new Ground(x, y);
+                    grass.draw();
+
+                    if (tile === 'B')
+                    {
+                        const block = new Block(x, y);
+                        block.draw();
+                    }
+                    else if (tile === 'P')
+                    {
+                        player.draw(ctx);
+                    }
+                    else if (tile === 'X')
+                    {
+                        gold.draw(ctx);
+                        // Draw the 'X' as a blue square
+                        //ctx.fillStyle = 'blue';
+                        //ctx.fillRect(xPosition, yPosition, TILESIZE, TILESIZE);
+                    }
+                }
+            }
+
+        }
+
+        function update() {
+            player.update();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTilemap();
+            // Display the 'objetivo_completo' text if showMessage is true
+            const objetivo_completo = document.getElementById('objetivo_completo');
+            if (showMessage) {
+                objetivo_completo.textContent = 'Coletou!!';
+                // Hide the message after 2 seconds
+                setTimeout(() => {
+                    showMessage = false;
+                    objetivo_completo.textContent = '';
+                }, 500);
+            } else {
+                // Clear the content of the objetivo_completo div
+                objetivo_completo.textContent = '';
+            }
+        }
+
+        setInterval(function () {
+            update();
+            draw();
+        }, 1000 / FPS);
+
+        function sendTilemapToFlask() {
+            // Use the Fetch API to send a POST request to Flask
+            fetch('/update_tilemap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tilemap: tilemap,
+                    player_coord_x: Math.floor(player.x/TILESIZE),
+                    player_coord_y: Math.floor(player.y/TILESIZE),
+                    gold_x: Math.floor(gold.x/TILESIZE),
+                    gold_y: Math.floor(gold.y/TILESIZE)}),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data["move"].length > 0) {
+                    //console.log(data["move"][0]);
+                    JSON.parse(data["move"]).forEach(direction => {
+                        player.movement_digital(direction);
+                        });
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        setInterval(function () {
+            sendTilemapToFlask()
+        }, 300);
+    </script>
+</body>
+</html>

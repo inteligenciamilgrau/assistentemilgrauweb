@@ -140,6 +140,20 @@ def generate_answer(messages, modelo):
                 {
                     "type": "function",
                     "function": {
+                        "name": "destino_player",
+                        "description": "Pedir para o Bog ir para algum lugar ou fazer alguma coisa.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "destino": {"type": "string", "description": "Lugar que o Bog deve ir ou coisa que o Bog deve fazer"},
+                            },
+                            "required": ["destino"],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
                         "name": "setar_porta",
                         "description": "Configurar o arduino em alguma porta",
                         "parameters": {
@@ -425,9 +439,10 @@ def arduino():
 @app.route('/gravar')
 def gravar():
     with sr.Microphone() as source:
-        print("Pressione o botão e fale...")
+        print("Pode falar, já estou te ouvindo...")
         audio = recognizer.listen(source)
     try:
+        print("Enviando...")
         # Use a biblioteca de reconhecimento de voz para converter o áudio em texto
         text = recognizer.recognize_google(audio, language="pt-BR")
         print("Texto reconhecido: " + text)
@@ -597,6 +612,166 @@ def analisar_imagem(variaveis):
     }
     resposta = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return resposta.json()['choices'][0]["message"]["content"]
+
+
+mover = []
+destino = "none"
+
+def send_movement(movement):
+    url = "http://127.0.0.1:5000/move_player"
+    params = {"direction": '["' + movement + '"]'}
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()  # Raises HTTPError for bad responses
+        print(f"Movement '{movement}' sent successfully.")
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending movement: {e}")
+
+
+def dijkstra(graph, start, goal):
+    priority_queue = [(0, start, [])]
+    visited = set()
+
+    while priority_queue:
+        priority_queue.sort()
+        (cost, current, path) = priority_queue.pop(0)
+
+        if current in visited:
+            continue
+
+        visited.add(current)
+
+        if current == goal:
+            return path
+
+        for neighbor, (weight, direction) in graph[current].items():
+            priority_queue.append((cost + weight, neighbor, path + [direction]))
+
+    return []
+
+def create_graph(map_data):
+    rows, cols = len(map_data), len(map_data[0])
+    graph = {(i, j): {} for i in range(rows) for j in range(cols)}
+
+    for i in range(rows):
+        for j in range(cols):
+            if map_data[i][j] == 'B':
+                continue
+
+            for x, y, direction in [(i + 1, j, "Down"), (i - 1, j, "Up"), (i, j + 1, "Right"), (i, j - 1, "Left")]:
+                if 0 <= x < rows and 0 <= y < cols and map_data[x][y] != 'B':
+                    graph[(i, j)][(x, y)] = (1, direction)
+
+    return graph
+
+def encontrar_caminho(map_data, map_goal):
+    start = None
+    goal = None
+
+    for i in range(len(map_data)):
+        for j in range(len(map_data[0])):
+            if map_data[i][j] == 'P':
+                start = (i, j)
+            elif map_data[i][j] == map_goal:
+                goal = (i, j)
+
+    if start is None or goal is None:
+        #print("Invalid map: Start or Goal not found.")
+        return ["parado"]
+
+    graph = create_graph(map_data)
+    shortest_path = dijkstra(graph, start, goal)
+
+    if not shortest_path:
+        #print("No path found.")
+        return []
+    else:
+        #print("Shortest path:", str(shortest_path).replace(" ", "").replace("'", "\""))
+        return shortest_path
+
+
+
+@app.route('/rpg')
+def rpg():
+    return render_template('rpg.html')
+
+
+# http://127.0.0.1:5000/move_player?direction=[%22R%22,%22R%22,%22R%22,%22D%22,%22D%22,%22D%22]
+@app.route('/move_player', methods=['GET'])
+def move_player():
+    global mover
+    mover = request.args.get('direction')
+    # Handle the direction and send it to the player
+    handle_move(mover)
+    print("dir", json.loads(mover)[0])
+    return 'Move command received'
+
+
+#@app.route('/destino_player', methods=['GET'])
+def destino_player(destiny):
+    global destino
+    #destino = request.args.get('destino')
+    destino = destiny["destino"].lower()
+    return 'Destino command received'
+
+
+@app.route('/update_tilemap', methods=['POST'])
+def update_tilemap():
+    global mover
+    data = request.get_json()
+    tilemap = data.get('tilemap')#
+    player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
+    gold_coord = (data.get('gold_x'), data.get('gold_y'))
+
+    def place_player_and_gold(tilemap, player_coord, gold_coord):
+        # Convert coordinates to row and column indices
+        player_col, player_row = player_coord
+        gold_col, gold_row = gold_coord
+
+        # Iterate through the tilemap and update player and gold positions
+        for i in range(len(tilemap)):
+            for j in range(len(tilemap[i])):
+                if (i, j) == (player_row, player_col):
+                    tilemap[i] = tilemap[i][:j] + 'P' + tilemap[i][j + 1:]
+                elif (i, j) == (gold_row, gold_col):
+                    tilemap[i] = tilemap[i][:j] + 'G' + tilemap[i][j + 1:]
+
+        return tilemap
+
+    movendo = []
+    if not mover == []:
+        movendo = mover
+        mover = []
+        print("Moveu")
+
+    updated_tilemap = place_player_and_gold(tilemap, player_coord, gold_coord)
+    # Handle the direction and send it to the player
+    tilemap_string = '\n'.join(updated_tilemap).replace("XP", "")
+
+    updated_tilemap[-1] = updated_tilemap[-1].replace("XP", "")
+
+    locais = {"casa": "H", "mercado": "M", "gold": "G", "none": None}
+
+    if not locais[destino] is None:
+        caminho = encontrar_caminho(updated_tilemap, locais[destino])
+        if not caminho[0] == "parado":
+            send_movement(caminho[0])
+
+    #print("caminho", caminho[0])
+
+    #time.sleep(1)
+
+    #print("tilemap_string", "\n"+tilemap_string, "player_coord", player_coord, "gold_coord", gold_coord)
+    return jsonify({'message': 'Tilemap updated successfully', 'move': movendo})
+
+
+def handle_move(direction):
+    # Add logic to handle the direction
+    # For now, let's print the direction to the console
+    print(f"Received move command: {direction}")
+    # You may want to update the player's position based on the direction here
+    # For example, you can modify playerX and playerY accordingly
 
 
 if __name__ == '__main__':
