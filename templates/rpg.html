@@ -113,6 +113,7 @@
                 this.facing = 'down';
                 this.animationLoop = 1;
                 this.name = name;
+                this.ouro_coletado = 0;
                 this.playerSprite = new Sprite(playerSpritesheet, 3 + (0 * TILESIZE), 2 + (0 * TILESIZE), this.width, this.height);
             }
 
@@ -214,6 +215,7 @@
                                 gold.x = xPosition;
                                 gold.y = yPosition;
                                 //console.log(tilemap);
+                                player.ouro_coletado += 1;
                             }
                         }
                     }
@@ -328,12 +330,13 @@
             // Display the 'objetivo_completo' text if showMessage is true
             const objetivo_completo = document.getElementById('objetivo_completo');
             if (showMessage) {
-                objetivo_completo.textContent = 'Coletou!!';
+
+                objetivo_completo.textContent = 'Coletou: ' + player.ouro_coletado;
                 // Hide the message after 2 seconds
-                setTimeout(() => {
-                    showMessage = false;
-                    objetivo_completo.textContent = '';
-                }, 500);
+                //setTimeout(() => {
+                //    showMessage = false;
+                //    objetivo_completo.textContent = '';
+                //}, 500);
             } else {
                 // Clear the content of the objetivo_completo div
                 objetivo_completo.textContent = '';

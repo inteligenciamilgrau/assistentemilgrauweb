@@ -140,12 +140,52 @@ def generate_answer(messages, modelo):
                 {
                     "type": "function",
                     "function": {
-                        "name": "destino_player",
-                        "description": "Pedir para o Bog ir para algum lugar ou fazer alguma coisa.",
+                        "name": "enviar_objetivo",
+                        "description": "Enviar ou anotar um objetivo para ser realizado.",
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "destino": {"type": "string", "description": "Lugar que o Bog deve ir ou coisa que o Bog deve fazer"},
+                                "objetivo": {"type": "string", "description": "Qual o objetivo que deve ser feito"},
+                            },
+                            "required": ["objetivo"],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "listar_objetivos",
+                        "description": "Listar os objetivos recebidos.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "realizar_objetivos",
+                        "description": "Executar ou realizar os objetivos armazenados.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "destino_player",
+                        "description": "Pedir para o Bog ir para algum lugar ou fazer alguma coisa \
+                            ou pegar/coletar alguma coisa.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "destino": {"type": "string", "description": "Lugar que o Bog deve ir \
+                                ou coisa que o Bog deve fazer ou objeto que deve pegar"},
                             },
                             "required": ["destino"],
                         },
@@ -616,6 +656,7 @@ def analisar_imagem(variaveis):
 
 mover = []
 destino = "none"
+procurando = False
 
 def send_movement(movement):
     url = "http://127.0.0.1:5000/move_player"
@@ -710,15 +751,16 @@ def move_player():
 
 #@app.route('/destino_player', methods=['GET'])
 def destino_player(destiny):
-    global destino
+    global destino, procurando
     #destino = request.args.get('destino')
     destino = destiny["destino"].lower()
+    procurando = True
     return 'Destino command received'
 
 
 @app.route('/update_tilemap', methods=['POST'])
 def update_tilemap():
-    global mover
+    global mover, destino, procurando
     data = request.get_json()
     tilemap = data.get('tilemap')#
     player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
@@ -743,7 +785,7 @@ def update_tilemap():
     if not mover == []:
         movendo = mover
         mover = []
-        print("Moveu")
+        print("Completou!!!!!!!!!!!!!!!!!!!")
 
     updated_tilemap = place_player_and_gold(tilemap, player_coord, gold_coord)
     # Handle the direction and send it to the player
@@ -751,12 +793,31 @@ def update_tilemap():
 
     updated_tilemap[-1] = updated_tilemap[-1].replace("XP", "")
 
-    locais = {"casa": "H", "mercado": "M", "gold": "G", "none": None}
+    locais = {"casa": "H", "mercado": "M", "ouro": "G"}
 
-    if not locais[destino] is None:
-        caminho = encontrar_caminho(updated_tilemap, locais[destino])
-        if not caminho[0] == "parado":
-            send_movement(caminho[0])
+    if destino in locais:
+        letters_to_find = ['M', 'H', 'G']
+        def find_letters_coordinates(tilemap, letters):
+            coordinates = {letter: [] for letter in letters}
+
+            for y, row in enumerate(tilemap):
+                for x, char in enumerate(row):
+                    if char in letters:
+                        coordinates[char].append((x, y))
+
+            return coordinates
+
+        letters_coordinates = find_letters_coordinates(tilemap, letters_to_find)
+        print("coords", player_coord, gold_coord, letters_coordinates)
+        if not letters_coordinates[locais[destino]]:
+            print("CONSEGUIU")
+            destino = ""
+            procurando = False
+        if not destino == "":
+            caminho = encontrar_caminho(updated_tilemap, locais[destino])
+            if not caminho[0] == "parado":
+                send_movement(caminho[0])
+
 
     #print("caminho", caminho[0])
 
@@ -773,6 +834,30 @@ def handle_move(direction):
     # You may want to update the player's position based on the direction here
     # For example, you can modify playerX and playerY accordingly
 
+
+objetivos = []
+def enviar_objetivo(objetivo):
+    objetivos.append(objetivo)
+    print(objetivos)
+    return "Objetivo recebido com sucesso"
+
+
+def listar_objetivos(seila):
+    global objetivos
+    return "Os objetivos são: " + str(objetivos)
+
+def realizar_objetivos(seila):
+    global objetivos
+    for objetivo in objetivos:
+        print(objetivo["objetivo"])
+        message = [{"role": "user", "content": objetivo["objetivo"]}]
+        response = generate_answer(message, model)
+        print(response.choices[0].message.content)
+        while procurando:
+            time.sleep(1)
+            print("realizando")
+    objetivos = []
+    return "Objetivos realizados"
 
 if __name__ == '__main__':
     app.run(debug=True)
