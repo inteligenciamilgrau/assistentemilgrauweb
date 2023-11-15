@@ -114,7 +114,7 @@ def falando(resposta_t, voz):
     engine.setProperty('rate', velocidade)
     voices = engine.getProperty('voices')
     for indice, vozes in enumerate(voices):  # listar vozes
-        print(indice, vozes.name)  # listar as vozes instaladas
+        #print(indice, vozes.name)  # listar as vozes instaladas
         pass
     engine.setProperty('voice', voices[voz].id)
 

@@ -90,6 +90,12 @@
         const terrainSpritesheet = new Image();
         terrainSpritesheet.src = "static/img/terrain.png";
 
+        const casaSpritesheet = new Image();
+        casaSpritesheet.src = "static/img/casa.png";
+
+        const mercadoSpritesheet = new Image();
+        mercadoSpritesheet.src = "static/img/mercado.png";
+
         class Sprite {
             constructor(image, x, y, width, height) {
                 this.image = image;
@@ -253,9 +259,15 @@
             }
 
             draw() {
-                //const groundSprite = new Sprite(terrainSpritesheet, 15 * TILESIZE, 1 * TILESIZE, this.width, this.height);
+                //const groundSprite = new Sprite(terrainSpritesheet, 15 * TILESIZE, 1 * TILESIZE, this.width , this.height);
                 const groundSprite = new Sprite(terrainSpritesheet, 18 * TILESIZE, 13 * TILESIZE, this.width, this.height);
                 groundSprite.draw(ctx, this.x, this.y);
+
+                const casaSprite = new Sprite(casaSpritesheet, 0 * TILESIZE, 0 * TILESIZE, 64, 64);
+                ctx.drawImage(casaSpritesheet, 0, 0, 64, 64, 1 * 32, 9 * 32, 64, 64);
+
+                const mercadoSprite = new Sprite(mercadoSpritesheet, 0 * TILESIZE, 0 * TILESIZE, 64, 64);
+                ctx.drawImage(mercadoSpritesheet, 0, 0, 64, 64, 13 * 32, 1 * 32, 64, 64);
             }
         }
 
