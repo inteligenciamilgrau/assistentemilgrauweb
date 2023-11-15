@@ -718,5 +718,6 @@ def realizar_objetivos(seila):
     objetivos = []
     return "Objetivos realizados"
 
+
 if __name__ == '__main__':
     app.run(debug=True)
