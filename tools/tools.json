@@ -1,0 +1,123 @@
+{
+    "tools": [
+        {
+            "type": "function",
+            "function": {
+                "name": "enviar_objetivo",
+                "description": "Enviar ou anotar um objetivo para ser realizado.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "objetivo": {"type": "string", "description": "Qual o objetivo que deve ser feito"}
+                    },
+                    "required": ["objetivo"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "listar_objetivos",
+                "description": "Listar os objetivos recebidos.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "realizar_objetivos",
+                "description": "Executar ou realizar os objetivos armazenados.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "destino_player",
+                "description": "Pedir para o Bog ir para algum lugar ou fazer alguma coisa ou pegar/coletar alguma coisa.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "destino": {"type": "string", "description": "Lugar que o Bog deve ir ou coisa que o Bog deve fazer ou objeto que deve pegar"}
+                        },
+                        "required": ["destino"]
+                    }
+                }
+            },
+        {
+            "type": "function",
+            "function": {
+                "name": "setar_porta",
+                "description": "Configurar o arduino em alguma porta",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "porta": {"type": "string", "description": "Porta do arduino"}
+                    },
+                    "required": ["porta"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "setar_pino",
+                "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. Você deve receber um pedido para desligar ou ligar o LED ou pino e será informado o número do pino ou LED.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pino": {"type": "integer", "description": "Pino ou LED do arduino"},
+                        "liga": {"type": "boolean", "description": "Ligar ou desligar o LED ou pino"}
+                    },
+                    "required": ["pino", "liga"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "ler_arquivo",
+                "description": "Ler, resumir ou analisar um pdf.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "arquivo": {"type": "string", "description": "Nome do arquivo"}
+                    },
+                    "required": ["arquivo"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "listar_arquivos",
+                "description": "Listar os arquivos de uma pasta.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analisar_imagem",
+                "description": "Ver ou analisar a imagem que tem no stream da camera. Repasse a descrição da imagem sem alterar o texto.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        }
+    ]
+}

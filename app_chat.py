@@ -10,6 +10,7 @@ import threading
 import time
 import base64
 import requests
+from tools.tools import *
 
 app = Flask(__name__)
 
@@ -43,6 +44,9 @@ else:
 
     # Set the initial data to the json_data variable
     json_data = initial_data
+
+with open('./tools/tools.json', 'r') as file:
+    tools = json.load(file)
 
 # Access the values and store them in separate variables
 model = json_data[0]["model"]
@@ -131,137 +135,13 @@ def falando(resposta_t, voz):
 
 
 def generate_answer(messages, modelo):
+    print("Perguntando ao modelo", modelo)
     try:
         response = openai.chat.completions.create(
             model=modelo,
             messages=messages,
             temperature=0.5,
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "enviar_objetivo",
-                        "description": "Enviar ou anotar um objetivo para ser realizado.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "objetivo": {"type": "string", "description": "Qual o objetivo que deve ser feito"},
-                            },
-                            "required": ["objetivo"],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "listar_objetivos",
-                        "description": "Listar os objetivos recebidos.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {},
-                            "required": [],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "realizar_objetivos",
-                        "description": "Executar ou realizar os objetivos armazenados.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {},
-                            "required": [],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "destino_player",
-                        "description": "Pedir para o Bog ir para algum lugar ou fazer alguma coisa \
-                            ou pegar/coletar alguma coisa.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "destino": {"type": "string", "description": "Lugar que o Bog deve ir \
-                                ou coisa que o Bog deve fazer ou objeto que deve pegar"},
-                            },
-                            "required": ["destino"],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "setar_porta",
-                        "description": "Configurar o arduino em alguma porta",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "porta": {"type": "string", "description": "Porta do arduino"},
-                            },
-                            "required": ["porta"],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "setar_pino",
-                        "description": "Ligar um pino ou LED ou desligar um pino ou LED do arduino. \
-                        Você deve receber um pedido para desligar ou ligar o LED ou pino e será \
-                        informado o número do pino ou LED.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "pino": {"type": "integer", "description": "Pino ou LED do arduino"},
-                                "liga": {"type": "boolean", "description": "Ligar ou desligar o LED ou pino"}
-                            },
-                            "required": ["pino", "liga"],
-                        },
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "ler_arquivo",
-                        "description": "Ler, resumir ou analisar um pdf.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "arquivo": {"type": "string", "description": "Nome do arquivo"},
-                            },
-                            "required": ["arquivo"],
-                        },
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "listar_arquivos",
-                        "description": "Listar os arquivos de uma pasta.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {},
-                            "required": [],
-                        },
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "analisar_imagem",
-                        "description": "Ver ou analisar a imagem que tem no stream da camera.\
-                        Repasse a descrição da imagem sem alterar o texto.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {},
-                            "required": [],
-                        },
-                    }
-                }
-            ],
+            tools=tools["tools"],
             tool_choice="auto",
         )
         first_response = response.choices[0].message
@@ -665,7 +545,7 @@ def send_movement(movement):
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()  # Raises HTTPError for bad responses
-        print(f"Movement '{movement}' sent successfully.")
+        #print(f"Movement '{movement}' sent successfully.")
     except requests.exceptions.RequestException as e:
         print(f"Error sending movement: {e}")
 
@@ -743,9 +623,8 @@ def rpg():
 def move_player():
     global mover
     mover = request.args.get('direction')
-    # Handle the direction and send it to the player
-    handle_move(mover)
-    print("dir", json.loads(mover)[0])
+
+    #print("dir", json.loads(mover)[0])
     return 'Move command received'
 
 
@@ -755,7 +634,7 @@ def destino_player(destiny):
     #destino = request.args.get('destino')
     destino = destiny["destino"].lower()
     procurando = True
-    return 'Destino command received'
+    return 'Recebi ' + str(destino) + " com sucesso"
 
 
 @app.route('/update_tilemap', methods=['POST'])
@@ -785,7 +664,6 @@ def update_tilemap():
     if not mover == []:
         movendo = mover
         mover = []
-        print("Completou!!!!!!!!!!!!!!!!!!!")
 
     updated_tilemap = place_player_and_gold(tilemap, player_coord, gold_coord)
     # Handle the direction and send it to the player
@@ -808,7 +686,7 @@ def update_tilemap():
             return coordinates
 
         letters_coordinates = find_letters_coordinates(tilemap, letters_to_find)
-        print("coords", player_coord, gold_coord, letters_coordinates)
+        #print("coords", player_coord, gold_coord, letters_coordinates)
         if not letters_coordinates[locais[destino]]:
             print("CONSEGUIU")
             destino = ""
@@ -826,25 +704,6 @@ def update_tilemap():
     #print("tilemap_string", "\n"+tilemap_string, "player_coord", player_coord, "gold_coord", gold_coord)
     return jsonify({'message': 'Tilemap updated successfully', 'move': movendo})
 
-
-def handle_move(direction):
-    # Add logic to handle the direction
-    # For now, let's print the direction to the console
-    print(f"Received move command: {direction}")
-    # You may want to update the player's position based on the direction here
-    # For example, you can modify playerX and playerY accordingly
-
-
-objetivos = []
-def enviar_objetivo(objetivo):
-    objetivos.append(objetivo)
-    print(objetivos)
-    return "Objetivo recebido com sucesso"
-
-
-def listar_objetivos(seila):
-    global objetivos
-    return "Os objetivos são: " + str(objetivos)
 
 def realizar_objetivos(seila):
     global objetivos
