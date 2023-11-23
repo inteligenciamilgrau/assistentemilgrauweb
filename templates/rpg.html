@@ -18,6 +18,15 @@
             z-index: 1; /* Set a higher z-index to place it above the canvas */
         }
 
+        #localPlayer {
+            position: relative;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: black;
+            z-index: 1; /* Set a higher z-index to place it above the canvas */
+        }
+
         #gameContainer {
             position: relative;
         }
@@ -26,7 +35,9 @@
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas" width="640" height="480"></canvas>
-        <div id="objetivo_completo"></div>
+        <div id="localPlayer"></div>
+        <div id="objetivo_completo">Coletou: 0</div>
+
     </div>
 
 
@@ -55,6 +66,23 @@
             'B.H..B.............B',
             'BBBBBBBBBBBBBBBBBBBBXP',
         ];
+
+        function findPosition(tilemap, targetLetter) {
+            let position = null;
+
+            for (let i = 0; i < tilemap.length; i++) {
+                for (let j = 0; j < tilemap[i].length; j++) {
+                    if (tilemap[i][j] === targetLetter) {
+                        position = { col: j, row: i };
+                    }
+                }
+            }
+
+            return position;
+        }
+
+        const casaPosition = findPosition(tilemap, "H");
+        const mercadoPosition = findPosition(tilemap, "M");
 
         function getRandomPosition() {
             let x, y;
@@ -124,6 +152,8 @@
                 this.name = name;
                 this.ouro_coletado = 0;
                 this.playerSprite = new Sprite(playerSpritesheet, 3 + (0 * TILESIZE), 2 + (0 * TILESIZE), this.width, this.height);
+                this.coordinates = {col: Math.floor(this.x/TILESIZE), row: Math.floor(this.y/TILESIZE)};
+                this.local = "Origem";
             }
 
             newSprite(xSprite, ySprite){
@@ -137,6 +167,7 @@
             update() {
                 this.movement();
                 this.animate();
+                this.coordinates = {col: Math.floor(player.x/TILESIZE), row: Math.floor(player.y/TILESIZE)};
             }
 
             movement() {
@@ -225,6 +256,7 @@
                                 gold.y = yPosition;
                                 //console.log(tilemap);
                                 player.ouro_coletado += 1;
+                                //console.log("ORO");
                             }
                         }
                     }
@@ -252,6 +284,7 @@
         }
 
         const player = new Player(playerX, playerY, "Maria");
+        //console.log(casaPosition, mercadoPosition, player.coordinates);
 
         class Gold {
             constructor(x, y) {
@@ -338,6 +371,7 @@
 
         function update() {
             player.update();
+            //console.log(casaPosition, mercadoPosition, player.coordinates);
         }
 
         function draw() {
@@ -345,6 +379,7 @@
             drawTilemap();
             // Display the 'objetivo_completo' text if showMessage is true
             const objetivo_completo = document.getElementById('objetivo_completo');
+            const localPlayer = document.getElementById('localPlayer');
             if (showMessage) {
 
                 objetivo_completo.textContent = 'Coletou: ' + player.ouro_coletado;
@@ -356,6 +391,21 @@
             } else {
                 // Clear the content of the objetivo_completo div
                 objetivo_completo.textContent = '';
+            }
+            if(player.coordinates.row === mercadoPosition.row &&
+            player.coordinates.col === mercadoPosition.col){
+                localPlayer.textContent = 'Local: Mercado';
+                player.local = "Mercado";
+            }
+            else if(player.coordinates.row === casaPosition.row &&
+            player.coordinates.col === casaPosition.col){
+                localPlayer.textContent = 'Local: Casa';
+                player.local = "Casa";
+            }
+            else
+            {
+                localPlayer.textContent = 'Local: Por aí';
+                player.local = "Por aí";
             }
         }
 
@@ -375,7 +425,9 @@
                     player_coord_x: Math.floor(player.x/TILESIZE),
                     player_coord_y: Math.floor(player.y/TILESIZE),
                     gold_x: Math.floor(gold.x/TILESIZE),
-                    gold_y: Math.floor(gold.y/TILESIZE)}),
+                    gold_y: Math.floor(gold.y/TILESIZE),
+                    local: player.local,
+                    ouro: player.ouro_coletado}),
             })
             .then(response => response.json())
             .then(data => {

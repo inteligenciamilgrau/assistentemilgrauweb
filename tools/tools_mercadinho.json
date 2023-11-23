@@ -1,0 +1,16 @@
+{
+    "tools": [
+        {
+            "type": "function",
+            "function": {
+                "name": "vender_pao",
+                "description": "Quando pedirem para comprar pão",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        }
+    ]
+}

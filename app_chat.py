@@ -48,6 +48,11 @@ else:
 with open('./tools/tools.json', 'r') as file:
     tools = json.load(file)
 
+
+with open('./tools/tools_mercadinho.json', 'r') as file:
+    tools_mercadinho = json.load(file)
+
+
 # Access the values and store them in separate variables
 model = json_data[0]["model"]
 model_vision = json_data[0]["model_vision"]
@@ -134,14 +139,28 @@ def falando(resposta_t, voz):
     '''
 
 
-def generate_answer(messages, modelo):
+tool_basic = [{
+            "type": "function",
+            "function": {
+                "name": "listar_arquivos",
+                "description": "Listar os arquivos de uma pasta.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        }]
+
+
+def generate_answer(messages, modelo, tool_gen=tools["tools"]):
     print("Perguntando ao modelo", modelo)
     try:
         response = openai.chat.completions.create(
             model=modelo,
             messages=messages,
             temperature=0.5,
-            tools=tools["tools"],
+            tools=tool_gen,
             tool_choice="auto",
         )
         first_response = response.choices[0].message
@@ -157,10 +176,18 @@ def generate_answer(messages, modelo):
         # Passo 2, verifica se o modelo quer chamar uma funcao
         if tool_calls:
 
-            def listar_funcoes():
-                return {nome: objeto for nome, objeto in variaveis_locais.items() if callable(objeto)}
+            #def listar_funcoes():
+            #    return {nome: objeto for nome, objeto in variaveis_locais.items() if callable(objeto)}
 
-            available_functions = listar_funcoes()
+            def listar_funcoes(ferramentas):
+                function_dict = {}
+                function_names = [tool['function']['name'] for tool in ferramentas]
+                for name in function_names:
+                    # Use globals() to get the function by its name
+                    function_dict[name] = globals()[name]
+                return function_dict
+
+            available_functions = listar_funcoes(tool_gen)
 
             messages.append(first_response)
             for tool_call in tool_calls:
@@ -251,7 +278,7 @@ def actual_image_file():
 
 @app.route('/enviar', methods=['POST'])
 def enviar():
-    global image_file
+    global image_file, local
 
     data = request.get_json()
 
@@ -260,7 +287,19 @@ def enviar():
         #falando(pergunta, voz_pergunta)
         pergunta_thread = threading.Thread(target=falando, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
-    response = generate_answer(data["userText"], model)
+
+    if local == "Mercado":
+        print("Local", local)
+        atendenteMercadinho = [{ 'role': "system", 'content': "Seu nome é Janildo, você tem um mercadinho.\
+            Se alguém perguntar, o pão custa 3 ouros."}]
+        pergunta = data["userText"][-1]["content"]
+        atendenteMercadinho.append({'role': "user", 'content': pergunta})
+        print("mes", atendenteMercadinho)
+        response = generate_answer(atendenteMercadinho, model, tools_mercadinho["tools"])
+        response.choices[0].message.content = "Mercadinho: " + response.choices[0].message.content
+    else:
+        print("Local", local)
+        response = generate_answer(data["userText"], model)
 
     if falar_texto and falar_pergunta:
         pergunta_thread.join()
@@ -537,6 +576,7 @@ def analisar_imagem(variaveis):
 mover = []
 destino = "none"
 procurando = False
+local = "Origem"
 
 def send_movement(movement):
     url = "http://127.0.0.1:5000/move_player"
@@ -599,7 +639,7 @@ def encontrar_caminho(map_data, map_goal):
 
     if start is None or goal is None:
         #print("Invalid map: Start or Goal not found.")
-        return ["parado"]
+        return ["parar"]
 
     graph = create_graph(map_data)
     shortest_path = dijkstra(graph, start, goal)
@@ -639,11 +679,14 @@ def destino_player(destiny):
 
 @app.route('/update_tilemap', methods=['POST'])
 def update_tilemap():
-    global mover, destino, procurando
+    global mover, destino, procurando, local
     data = request.get_json()
     tilemap = data.get('tilemap')#
     player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
     gold_coord = (data.get('gold_x'), data.get('gold_y'))
+    local = data.get("local")
+    ouros = data.get("ouro")
+    #print("our", ouros)
 
     def place_player_and_gold(tilemap, player_coord, gold_coord):
         # Convert coordinates to row and column indices
@@ -693,11 +736,12 @@ def update_tilemap():
             procurando = False
         if not destino == "":
             caminho = encontrar_caminho(updated_tilemap, locais[destino])
-            if not caminho[0] == "parado":
+            if not caminho[0] == "parar":
                 send_movement(caminho[0])
 
 
     #print("caminho", caminho[0])
+    #print("Local", local)
 
     #time.sleep(1)
 
