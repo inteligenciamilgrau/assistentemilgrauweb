@@ -134,15 +134,15 @@
         {
             "type": "function",
             "function": {
-                "name": "preco_das_coisas",
-                "description": "Quando perguntarem o preço ou o custo das coisas, anotar o preço para comprar depois.",
+                "name": "agendar_alarme",
+                "description": "Quando o usuário pedir para agendar um alarme. O formato a ser enviado precisa ser \"%y-%m-%d %H:%M\". Converta o formato se necessario.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "objeto": {"type": "string", "description": "Nome do objeto"},
-                        "preco": {"type": "integer", "description": "Preço do objeto"}
+                        "data_horario": {"type": "string", "description": "Qual a hora e o dia do alarme no formato \"%y-%m-%d %H:%M\". Converta o formato se necessario."},
+                        "motivo": {"type": "string", "description": "Qual a razão do alarme"}
                     },
-                    "required": ["objeto", "preco"]
+                    "required": ["data_horario"]
                 }
             }
         }

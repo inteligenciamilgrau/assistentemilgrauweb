@@ -11,6 +11,21 @@
                     "required": []
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "preco_das_coisas",
+                "description": "Quando perguntarem o preço ou o custo das coisas, anotar o preço para comprar depois.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "objeto": {"type": "string", "description": "Nome do objeto"},
+                        "preco": {"type": "integer", "description": "Preço do objeto"}
+                    },
+                    "required": ["objeto", "preco"]
+                }
+            }
         }
     ]
 }
