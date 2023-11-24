@@ -41,11 +41,11 @@ basic_tool = [{
             "type": "function",
             "function": {
                 "name": "printar_texto",
-                "description": "Printar texto quando o usuario pedir para exibir algo na tela.",
+                "description": "Printar texto entre aspas quando o usuario pedir para exibir algo na tela.",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "texto_printar": {"type": "string", "description": "Texto para printar na tela"}
+                        "texto_printar": {"type": "string", "description": "Texto entre aspas para printar na tela"}
                     },
                     "required": ["texto_printar"]
                 }
@@ -110,16 +110,16 @@ image_file = "01_chatbot_feliz.gif"
 
 objetivos = []
 
-def listar_comandos(info):
+def listar_comandos():
     return str([tool['function']['description'] for tool in tools])
 
 def enviar_objetivo(objetivo):
-    objetivos.append(objetivo)
+    objetivos.append({"objetivo": objetivo})
     print(objetivos)
     return "Objetivo recebido com sucesso"
 
 
-def listar_objetivos(info):
+def listar_objetivos():
     global objetivos
     return "Os objetivos são: " + str(objetivos)
 
@@ -128,12 +128,12 @@ def listar_objetivos(info):
 def setar_porta(porta):
     global arduinoBoard, arduinoPorta, json_data
 
-    resposta = porta["porta"]
+    resposta = porta
     try:
-        arduinoBoard = pyfirmata2.Arduino(porta["porta"])
+        arduinoBoard = pyfirmata2.Arduino(porta)
 
-        if not porta["porta"] == arduinoPorta:
-            arduinoPorta = porta["porta"]
+        if not porta == arduinoPorta:
+            arduinoPorta = porta
             try:
                 with open(os.path.join(ACTUAL_FOLDER + file_path), "w") as file_porta:
                     json.dump(json_data, file_porta, indent=4)
@@ -145,16 +145,15 @@ def setar_porta(porta):
         return "Deu ruim. Talvez o arduino esteja em outra porta? Ou está desconectado?: " + str(e)
 
 
-def setar_pino(variaveis):
+def setar_pino(pino, liga):
     global arduinoBoard
 
-    resposta = variaveis
     try:
         if arduinoBoard is None:
             print("Configurando o Arduino na", arduinoPorta)
             arduinoBoard = pyfirmata2.Arduino(arduinoPorta)
-        arduinoBoard.digital[variaveis["pino"]].write(variaveis["liga"])
-        return json.dumps(resposta)
+        arduinoBoard.digital[pino].write(liga)
+        return json.dumps({"pino": pino, "liga": liga})
     except Exception as e:
         print("Falhou", str(e))
         return json.dumps({"error": "Deu ruim"})
@@ -256,7 +255,7 @@ def generate_answer(messages, modelo, tool_gen=tools, tool_choice="auto"):
                 print("Detectou uma função", function_name, function_args)
                 print("************************")
 
-                function_response = function_to_call(function_args)
+                function_response = function_to_call(**function_args)
 
                 print("function_response", function_response)
 
@@ -309,7 +308,7 @@ def falando(resposta_t, voz):
     '''
 
 
-def realizar_objetivos(seila):
+def realizar_objetivos():
     global objetivos
     for objetivo in objetivos:
         print(objetivo["objetivo"])
@@ -323,17 +322,15 @@ def realizar_objetivos(seila):
     return "Objetivos realizados"
 
 
-def destino_player(destiny):
+def destino_player(destino_desejado):
     global destino, procurando
     #destino = request.args.get('destino')
-    destino = destiny["destino"].lower()
+    destino = destino_desejado.lower()
     procurando = True
     return 'Recebi ' + str(destino) + " com sucesso"
 
 
-def ler_arquivo(variaveis, max_paginas=5):
-    arquivo = variaveis["arquivo"]
-
+def ler_arquivo(arquivo, max_paginas=5):
     filename_resumo = os.path.join(UPLOAD_FOLDER, arquivo)
     reader = PyPDF2.PdfReader(filename_resumo)
     # print("TEXTO DO ARQUIVO >>>>")
@@ -353,7 +350,7 @@ def ler_arquivo(variaveis, max_paginas=5):
     return texto_completo
 
 
-def listar_arquivos(variaveis, pasta=UPLOAD_FOLDER):
+def listar_arquivos(pasta=UPLOAD_FOLDER):
     # pasta = "./" + pasta
     if os.path.exists(pasta):
         if os.path.isdir(pasta):
@@ -372,7 +369,7 @@ def atualiza_camera_url(novo_path):
     camera_pic_url = novo_path
 
 
-def analisar_imagem(variaveis):
+def analisar_imagem():
     def encode_image(image_path_encode):
         if image_path_encode.startswith("http"):
             return base64.b64encode(requests.get(image_path_encode).content).decode('utf-8')
@@ -511,7 +508,7 @@ def atualiza_mapa(data):
     player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
     gold_coord = (data.get('gold_x'), data.get('gold_y'))
     local = data.get("local")
-    print("loc", local)
+    #print("loc", local)
     ouros = data.get("ouro")
 
     #print("local", local)
@@ -607,7 +604,7 @@ def enviando_pergunta(data):
 
 def agendar_alarme(data_horario, motivo=()):
     print(data_horario, motivo)
-    datetime_string = data_horario['data_horario']
+    datetime_string = data_horario
     # Converte a string de data/horário para um objeto datetime
     data_horario_obj = datetime.strptime(datetime_string, "%Y-%m-%d %H:%M")
 
@@ -660,9 +657,9 @@ def printar_texto(texto_printar):
     print("Texto para printar", texto_printar)
     return "Printou"
 
-def abrir_planilha(dados):
+def abrir_planilha(nome_do_arquivo):
     global planilha
-    filename_resumo = os.path.join(UPLOAD_FOLDER, dados["nome_do_arquivo"])
+    filename_resumo = os.path.join(UPLOAD_FOLDER, nome_do_arquivo)
     planilha = pd.read_excel(filename_resumo)
     print(planilha.head())
 
@@ -672,15 +669,15 @@ def abrir_planilha(dados):
     return json_colunas
 
 
-def gerar_grafico(dados, titulo="Gráfico de Dispersão", rotulo_x="Eixo X", rotulo_y="Eixo Y", nome_arquivo="grafico.png"):
+def gerar_grafico(titulo="Gráfico de Dispersão", dados_x="Eixo X", dados_y="Eixo Y", nome_arquivo="grafico.png"):
     #os.chdir(ACTUAL_FOLDER)
     #print(os.getcwd())
     # Cria um gráfico de dispersão
-    plt.scatter(planilha[dados['dados_x']], planilha[dados['dados_y']])
+    plt.scatter(planilha[dados_x], planilha[dados_y])
 
     # Adiciona rótulos e título ao gráfico
-    plt.xlabel(rotulo_x)
-    plt.ylabel(rotulo_y)
+    plt.xlabel(dados_x)
+    plt.ylabel(dados_y)
     plt.title(titulo)
 
     # Salva o gráfico como uma imagem

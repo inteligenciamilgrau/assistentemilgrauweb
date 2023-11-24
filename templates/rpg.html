@@ -392,13 +392,13 @@
                 // Clear the content of the objetivo_completo div
                 objetivo_completo.textContent = '';
             }
-            if(player.coordinates.row === mercadoPosition.row &&
-            player.coordinates.col === mercadoPosition.col){
+            if(player.coordinates.row >= (mercadoPosition.row - 2) && player.coordinates.row <= (mercadoPosition.row + 2) &&
+            player.coordinates.col >= (mercadoPosition.col -2) && player.coordinates.col <= (mercadoPosition.col +2)){
                 localPlayer.textContent = 'Local: Mercado';
                 player.local = "Mercado";
             }
-            else if(player.coordinates.row === casaPosition.row &&
-            player.coordinates.col === casaPosition.col){
+            else if(player.coordinates.row >= (casaPosition.row - 2) && player.coordinates.row <= (casaPosition.row + 2) &&
+            player.coordinates.col >= (casaPosition.col -2) && player.coordinates.col <= (casaPosition.col +2)){
                 localPlayer.textContent = 'Local: Casa';
                 player.local = "Casa";
             }

@@ -58,9 +58,9 @@
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "destino": {"type": "string", "description": "Lugar que o Bog deve ir ou coisa que o Bog deve fazer ou objeto que deve pegar"}
+                        "destino_desejado": {"type": "string", "description": "Lugar que o Bog deve ir ou coisa que o Bog deve fazer ou objeto que deve pegar"}
                         },
-                        "required": ["destino"]
+                        "required": ["destino_desejado"]
                     }
                 }
             },
