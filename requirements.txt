@@ -4,3 +4,6 @@ pyttsx3
 SpeechRecognition
 pyfirmata2
 PyPDF2
+pandas
+openpyxl
+matplotlib

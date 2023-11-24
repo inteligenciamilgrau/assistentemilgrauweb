@@ -10,6 +10,9 @@ import threading
 import sched
 import time
 from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
+from .assistentes import mercadinho
 
 #from ..app_chat import arduinoBoard, arduinoPorta, json_data
 
@@ -25,6 +28,8 @@ tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
 jogador_atual = "X"
 vencedor = None
 jogadas = 0
+
+planilha = None
 
 with open('./tools/tools.json', 'r') as file:
     tools = json.load(file)['tools']
@@ -506,6 +511,7 @@ def atualiza_mapa(data):
     player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
     gold_coord = (data.get('gold_x'), data.get('gold_y'))
     local = data.get("local")
+    print("loc", local)
     ouros = data.get("ouro")
 
     #print("local", local)
@@ -575,18 +581,15 @@ def enviando_pergunta(data):
         #falando(pergunta, voz_pergunta)
         pergunta_thread = threading.Thread(target=falando, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
-
+    print("Local", local)
     if local == "Mercado":
-        print("Local", local)
-        atendenteMercadinho = [{ 'role': "system", 'content': "Seu nome é Janildo, você tem um mercadinho.\
-            Se alguém perguntar, o pão custa 3 ouros."}]
+        atendenteMercadinho = [{ 'role': "system", 'content': mercadinho}]
         pergunta = data["userText"][-1]["content"]
         atendenteMercadinho.append({'role': "user", 'content': pergunta})
         print("mes", atendenteMercadinho)
         response = generate_answer(atendenteMercadinho, model, tools_mercadinho["tools"])
         response.choices[0].message.content = "Mercadinho: " + response.choices[0].message.content
     else:
-        print("Local", local)
         response = generate_answer(data["userText"], model)
 
     if falar_texto and falar_pergunta:
@@ -595,8 +598,8 @@ def enviando_pergunta(data):
         resposta = response.choices[0].message.content
     except Exception as e:
         resposta = """
-        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de colocar\
-         sua Chave da OpenAI no arquivo "config_img.json"!\n\n Resposta:
+        Problemas Técnicos! Tente de novo ou faça uma gambiarra boa! Não esqueça de verificar\
+         se colocou sua Chave da OpenAI no arquivo "config_img.json"!\n\n Erro recebido:
         """ + str(response) + "!! \n\nErro: " + str(e)
 
     return resposta
@@ -656,3 +659,34 @@ def assistente_fala_texto(texto):
 def printar_texto(texto_printar):
     print("Texto para printar", texto_printar)
     return "Printou"
+
+def abrir_planilha(dados):
+    global planilha
+    filename_resumo = os.path.join(UPLOAD_FOLDER, dados["nome_do_arquivo"])
+    planilha = pd.read_excel(filename_resumo)
+    print(planilha.head())
+
+    nomes_colunas = planilha.columns.tolist()
+    json_colunas = pd.DataFrame(nomes_colunas).to_json(orient='values')
+
+    return json_colunas
+
+
+def gerar_grafico(dados, titulo="Gráfico de Dispersão", rotulo_x="Eixo X", rotulo_y="Eixo Y", nome_arquivo="grafico.png"):
+    #os.chdir(ACTUAL_FOLDER)
+    #print(os.getcwd())
+    # Cria um gráfico de dispersão
+    plt.scatter(planilha[dados['dados_x']], planilha[dados['dados_y']])
+
+    # Adiciona rótulos e título ao gráfico
+    plt.xlabel(rotulo_x)
+    plt.ylabel(rotulo_y)
+    plt.title(titulo)
+
+    # Salva o gráfico como uma imagem
+    plt.savefig(ACTUAL_FOLDER + "/static/img/" + nome_arquivo)
+
+    # Exibe o gráfico (opcional)
+    # plt.show()
+
+    return "Gráfico gerado"

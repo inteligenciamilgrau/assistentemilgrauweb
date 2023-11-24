@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify, send_file, Response
 import speech_recognition as sr
-import threading
 from tools.tools import *
 
 app = Flask(__name__)
@@ -184,6 +183,12 @@ def update_tilemap():
     movendo = atualiza_mapa(data)
 
     return jsonify({'message': 'Tilemap updated successfully', 'move': movendo})
+
+
+@app.route('/grafico')
+def grafico():
+    # Render the HTML template and pass the image file to it
+    return render_template('grafico.html', image_file='grafico.png')
 
 
 if __name__ == '__main__':

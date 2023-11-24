@@ -145,6 +145,35 @@
                     "required": ["data_horario"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "abrir_planilha",
+                "description": "Abrir a planilha xlsx informada",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "nome_do_arquivo": {"type": "string", "description": "Nome do arquivo com a planilha para ser aberta"}
+                    },
+                    "required": ["nome_do_arquivo"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "gerar_grafico",
+                "description": "Gerar gráfico de uma planilha a partir dos dados",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "dados_x": {"type": "string", "description": "dados da coluna X"},
+                        "dados_y": {"type": "string", "description": "dados da coluna Y"}
+                    },
+                    "required": ["dados_x", "dados_y"]
+                }
+            }
         }
     ]
 }
