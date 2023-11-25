@@ -164,4 +164,5 @@ config_img.json
 docs/
 
 static/img/grafico.png
+missions.json
 

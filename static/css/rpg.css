@@ -1,0 +1,25 @@
+canvas {
+            border: 1px solid #000;
+        }
+
+        #objetivo_completo, #conversar {
+            position: relative;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: black;
+            z-index: 1; /* Set a higher z-index to place it above the canvas */
+        }
+
+        #localPlayer {
+            position: relative;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: black;
+            z-index: 1; /* Set a higher z-index to place it above the canvas */
+        }
+
+        #gameContainer {
+            position: relative;
+        }

@@ -15,8 +15,8 @@
         {
             "type": "function",
             "function": {
-                "name": "enviar_objetivo",
-                "description": "Enviar ou anotar um objetivo para ser realizado.",
+                "name": "adicionar_objetivo",
+                "description": "Salvar, adicionar ou anotar um objetivo para ser realizado.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -29,12 +29,29 @@
         {
             "type": "function",
             "function": {
-                "name": "listar_objetivos",
-                "description": "Listar os objetivos recebidos.",
+                "name": "adicionar_missao",
+                "description": "Missão para e anotar.",
                 "parameters": {
                     "type": "object",
-                    "properties": {},
-                    "required": []
+                    "properties": {
+                        "nome_da_missao": {"type": "string", "description": "Qual o nome da missão que deve ser feita"},
+                        "descricao": {"type": "string", "description": "Qual descrição do que a missão faz"}
+                    },
+                    "required": ["nome_da_missao"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "listar_objetivos_ou_missoes",
+                "description": "Listar os objetivos ou missões recebidos.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "tipo": {"type": "string", "description": "Qual o tipo de lista desejado: objetivos ou missões. Use as palavras 'objetivos' e 'missões'."}
+                    },
+                    "required": ["tipo"]
                 }
             }
         },
@@ -47,6 +64,20 @@
                     "type": "object",
                     "properties": {},
                     "required": []
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "realizar_missao",
+                "description": "Executar ou realizar uma missão de acordo com o nome da missão.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "nome_da_missao": {"type": "string", "description": "Nome da missão para realizar"}
+                    },
+                    "required": ["nome_da_missao"]
                 }
             }
         },

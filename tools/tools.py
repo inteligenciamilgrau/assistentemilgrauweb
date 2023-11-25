@@ -23,6 +23,7 @@ mover = []
 destino = "none"
 procurando = False
 local = "Origem"
+conversar = ""
 
 tabuleiro = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
 jogador_atual = "X"
@@ -113,18 +114,48 @@ objetivos = []
 def listar_comandos():
     return str([tool['function']['description'] for tool in tools])
 
-def enviar_objetivo(objetivo):
+
+def adicionar_objetivo(objetivo):
     objetivos.append({"objetivo": objetivo})
     print(objetivos)
     return "Objetivo recebido com sucesso"
 
 
-def listar_objetivos():
+def listar_objetivos_ou_missoes(tipo):
+    global objetivos, missions_list
+    if tipo == "objetivos":
+        if objetivos == []:
+            return "Nenhum objetivo cadastrado"
+        else:
+            return "Os objetivos são: " + str(objetivos)
+    elif tipo == "missões":
+        if missions_list == {}:
+            return "Nenhuma missão cadastrada"
+        else:
+            def get_mission_names(missions):
+                print("missions", missions)
+                mission_names = [mission for mission in missions]
+                return ', '.join(mission_names)
+            return "As missões são: " + get_mission_names(missions_list)
+    else:
+        return "Tipo não encontrado: " + str(tipo)
+
+
+def realizar_objetivos():
     global objetivos
-    return "Os objetivos são: " + str(objetivos)
+    for objetivo in objetivos:
+        print(objetivo["objetivo"])
+        message = [{"role": "user", "content": objetivo["objetivo"]}]
+        response = generate_answer(message, model)
+        print(response.choices[0].message.content)
+        while procurando:
+            time.sleep(1)
+            print("realizando")
+    objetivos = []
+    return "Objetivos realizados"
+
 
 # Agente Arduino
-
 def setar_porta(porta):
     global arduinoBoard, arduinoPorta, json_data
 
@@ -160,14 +191,12 @@ def setar_pino(pino, liga):
 
 
 # Agente Mercadinho
-def preco_das_coisas(informacoes):
-    objeto = informacoes["objeto"]
-    preco = informacoes["preco"]
+def preco_das_coisas(objeto, preco):
     print("preços: ", objeto, preco)
     return "Preço recebido: " + objeto + " custa " + str(preco)
 
 
-def vender_pao(info):
+def vender_pao():
     print("Vendendo pao!")
     return "Pao vendido"
 
@@ -306,20 +335,6 @@ def falando(resposta_t, voz):
     #print("Duracao", end - start)
     engine.stop()
     '''
-
-
-def realizar_objetivos():
-    global objetivos
-    for objetivo in objetivos:
-        print(objetivo["objetivo"])
-        message = [{"role": "user", "content": objetivo["objetivo"]}]
-        response = generate_answer(message, model)
-        print(response.choices[0].message.content)
-        while procurando:
-            time.sleep(1)
-            print("realizando")
-    objetivos = []
-    return "Objetivos realizados"
 
 
 def destino_player(destino_desejado):
@@ -502,22 +517,27 @@ def verificar_vencedor(jogador):
 
 
 def atualiza_mapa(data):
-    global mover, destino, procurando, local
+    global mover, destino, procurando, local, conversar
     #
     tilemap = data.get('tilemap')  #
     player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
     gold_coord = (data.get('gold_x'), data.get('gold_y'))
+    atend_coord = (data.get('atend_x'), data.get('atend_y'))
     local = data.get("local")
     #print("loc", local)
     ouros = data.get("ouro")
+    conversar = data.get("conversar")
 
     #print("local", local)
     # print("our", ouros)
+    #print(player_coord, "player_coord")
+    #print(atend_coord, "atend")
 
-    def place_player_and_gold(tilemap, player_coord, gold_coord):
+    def place_player_and_gold(tilemap, player_coord, gold_coord, atend_coord):
         # Convert coordinates to row and column indices
         player_col, player_row = player_coord
         gold_col, gold_row = gold_coord
+        atend_col, atend_row = atend_coord
 
         # Iterate through the tilemap and update player and gold positions
         for i in range(len(tilemap)):
@@ -526,6 +546,8 @@ def atualiza_mapa(data):
                     tilemap[i] = tilemap[i][:j] + 'P' + tilemap[i][j + 1:]
                 elif (i, j) == (gold_row, gold_col):
                     tilemap[i] = tilemap[i][:j] + 'G' + tilemap[i][j + 1:]
+                elif (i, j) == (atend_row, atend_col):
+                    tilemap[i] = tilemap[i][:j] + 'A' + tilemap[i][j + 1:]
 
         return tilemap
 
@@ -534,16 +556,16 @@ def atualiza_mapa(data):
         movendo = mover
         mover = []
 
-    updated_tilemap = place_player_and_gold(tilemap, player_coord, gold_coord)
+    updated_tilemap = place_player_and_gold(tilemap, player_coord, gold_coord, atend_coord)
     # Handle the direction and send it to the player
-    tilemap_string = '\n'.join(updated_tilemap).replace("XP", "")
+    #tilemap_string = '\n'.join(updated_tilemap).replace("XP", "")
 
     updated_tilemap[-1] = updated_tilemap[-1].replace("XP", "")
 
-    locais = {"casa": "H", "mercado": "M", "ouro": "G"}
+    locais = {"casa": "H", "mercado": "M", "ouro": "G", "atendente": "A"}
 
     if destino in locais:
-        letters_to_find = ['M', 'H', 'G']
+        letters_to_find = ['M', 'H', 'G', 'A']
 
         def find_letters_coordinates(tilemap, letters):
             coordinates = {letter: [] for letter in letters}
@@ -579,7 +601,9 @@ def enviando_pergunta(data):
         pergunta_thread = threading.Thread(target=falando, args=(pergunta, voz_pergunta))
         pergunta_thread.start()
     print("Local", local)
-    if local == "Mercado":
+    print("conversar", conversar)
+    #if local == "Mercado":
+    if conversar == "João":
         atendenteMercadinho = [{ 'role': "system", 'content': mercadinho}]
         pergunta = data["userText"][-1]["content"]
         atendenteMercadinho.append({'role': "user", 'content': pergunta})
@@ -687,3 +711,58 @@ def gerar_grafico(titulo="Gráfico de Dispersão", dados_x="Eixo X", dados_y="Ei
     # plt.show()
 
     return "Gráfico gerado"
+
+
+#### MISSOES
+
+def adicionar_missao(nome_da_missao, descricao="Sem descrição"):
+    global objetivos, missions_list
+    if not objetivos == []:
+        missions_list[nome_da_missao] = {"descricao": descricao, "objetivos": objetivos}
+
+        print("Salvando", nome_da_missao)
+        print("missions_list", missions_list)
+        save_to_json()
+
+        return "Missao adicionada"
+    else:
+        return "Não há objetivos cadastrados para se criar uma missão"
+
+
+def realizar_missao(nome_da_missao):
+    global missions_list, objetivos
+    if nome_da_missao in missions_list:
+        print("missions_list", missions_list)
+        #print("missions_list", missions_list)
+        objetivos = missions_list[nome_da_missao]["objetivos"]
+        print("objetivos", objetivos)
+        realizar_objetivos()
+        return "Missão realizada"
+    else:
+        return "Missão não encontrada"
+
+def save_to_json():
+    global missions_list, filename_missions
+
+    with open(filename_missions, 'w') as file:
+        json.dump(missions_list, file)
+
+
+def load_from_json():
+    global filename_missions
+    try:
+        with open(filename_missions, 'r') as file:
+            mission_data = json.load(file)
+
+        missions = {}
+        for data in mission_data:
+            #print("data", data)
+            missions[data] = {"descricao": mission_data[data]['descricao'], "objetivos": mission_data[data]['objetivos']}
+
+        return missions
+    except FileNotFoundError:
+        return []
+
+
+filename_missions = 'missions.json'
+missions_list = load_from_json()
