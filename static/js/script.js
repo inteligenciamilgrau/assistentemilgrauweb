@@ -13,7 +13,7 @@ const defaultText = () => {
   <p>Assistente Mil Grau</p>
 </div>`;
 
-  userHistory = [{ role: "system", content: "Seu nome é Assistente Mil Grau"}];
+  userHistory = [{ role: "system", content: "Seu nome é Assistente Mil Grau. Você tem 0 ouros."}];
 
   chatInput.disabled = false;
 

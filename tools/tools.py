@@ -30,6 +30,8 @@ jogador_atual = "X"
 vencedor = None
 jogadas = 0
 
+quantidade_ouros = 0
+
 planilha = None
 
 with open('./tools/tools.json', 'r') as file:
@@ -146,7 +148,18 @@ def realizar_objetivos():
     for objetivo in objetivos:
         print(objetivo["objetivo"])
         message = [{"role": "user", "content": objetivo["objetivo"]}]
-        response = generate_answer(message, model)
+        #response = generate_answer(message, model)
+
+        if conversar == "João":
+            atendenteMercadinho = [{'role': "system", 'content': mercadinho}]
+            pergunta = objetivo["objetivo"]
+            atendenteMercadinho.append({'role': "user", 'content': pergunta})
+            print("mes", atendenteMercadinho)
+            response = generate_answer(atendenteMercadinho, model, tools_mercadinho["tools"])
+            response.choices[0].message.content = "Mercadinho: " + response.choices[0].message.content
+        else:
+            response = generate_answer(message, model)
+
         print(response.choices[0].message.content)
         while procurando:
             time.sleep(1)
@@ -337,12 +350,16 @@ def falando(resposta_t, voz):
     '''
 
 
-def destino_player(destino_desejado):
-    global destino, procurando
+def destino_player(destino_desejado, coletar_quantidade="0"):
+    global destino, procurando, quantidade_ouros
+    quantidade_ouros = int(coletar_quantidade)
     #destino = request.args.get('destino')
     destino = destino_desejado.lower()
     procurando = True
-    return 'Recebi ' + str(destino) + " com sucesso"
+    if coletar_quantidade == "0":
+        return 'Recebi ' + str(destino) + " com sucesso"
+    else:
+        return 'Recebi ' + str(destino) + " com sucesso e a quantidade " + coletar_quantidade
 
 
 def ler_arquivo(arquivo, max_paginas=5):
@@ -517,7 +534,7 @@ def verificar_vencedor(jogador):
 
 
 def atualiza_mapa(data):
-    global mover, destino, procurando, local, conversar
+    global mover, destino, procurando, local, conversar, quantidade_ouros
     #
     tilemap = data.get('tilemap')  #
     player_coord = (data.get('player_coord_x'), data.get('player_coord_y'))
@@ -525,7 +542,7 @@ def atualiza_mapa(data):
     atend_coord = (data.get('atend_x'), data.get('atend_y'))
     local = data.get("local")
     #print("loc", local)
-    ouros = data.get("ouro")
+    ouro = data.get("ouro")
     conversar = data.get("conversar")
 
     #print("local", local)
@@ -579,10 +596,11 @@ def atualiza_mapa(data):
 
         letters_coordinates = find_letters_coordinates(tilemap, letters_to_find)
         # print("coords", player_coord, gold_coord, letters_coordinates)
-        if not letters_coordinates[locais[destino]]:
+        if not letters_coordinates[locais[destino]] or (destino == "ouro" and ouro >= quantidade_ouros):
             print("CONSEGUIU")
             destino = ""
             procurando = False
+            quantidade_ouros = 0
         if not destino == "":
             caminho = encontrar_caminho(updated_tilemap, locais[destino])
             if not caminho[0] == "parar":
@@ -722,7 +740,7 @@ def adicionar_missao(nome_da_missao, descricao="Sem descrição"):
 
         print("Salvando", nome_da_missao)
         print("missions_list", missions_list)
-        save_to_json()
+        save_mission_to_json()
 
         return "Missao adicionada"
     else:
@@ -731,6 +749,7 @@ def adicionar_missao(nome_da_missao, descricao="Sem descrição"):
 
 def realizar_missao(nome_da_missao):
     global missions_list, objetivos
+    nome_da_missao = str(nome_da_missao.lower())
     if nome_da_missao in missions_list:
         print("missions_list", missions_list)
         #print("missions_list", missions_list)
@@ -741,17 +760,18 @@ def realizar_missao(nome_da_missao):
     else:
         return "Missão não encontrada"
 
-def save_to_json():
+
+def save_mission_to_json():
     global missions_list, filename_missions
 
-    with open(filename_missions, 'w') as file:
-        json.dump(missions_list, file)
+    with open(ACTUAL_FOLDER + "\\" + filename_missions, 'w', encoding='utf-8') as file:
+        json.dump(missions_list, file, indent=4, ensure_ascii=False)
 
 
 def load_from_json():
     global filename_missions
     try:
-        with open(filename_missions, 'r') as file:
+        with open(filename_missions, 'r', encoding='utf-8') as file:
             mission_data = json.load(file)
 
         missions = {}
