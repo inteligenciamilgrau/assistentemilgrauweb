@@ -1,8 +1,14 @@
 from flask import Flask, render_template, request, jsonify, send_file, Response
 import speech_recognition as sr
 from tools.tools import *
+import logging
+
+print("\n############ Iniciando Assistente Mil Grau #################\n")
 
 app = Flask(__name__)
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 recognizer = sr.Recognizer()
 

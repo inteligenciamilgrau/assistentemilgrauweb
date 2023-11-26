@@ -145,8 +145,11 @@ def listar_objetivos_ou_missoes(tipo):
 
 def realizar_objetivos():
     global objetivos
-    for objetivo in objetivos:
-        print(objetivo["objetivo"])
+    print("Iniciando objetivos. Total de objetivos:", len(objetivos))
+
+    for index, objetivo in enumerate(objetivos):
+        print("")
+        print(index + 1, "-", objetivo["objetivo"])
         message = [{"role": "user", "content": objetivo["objetivo"]}]
         #response = generate_answer(message, model)
 
@@ -154,7 +157,7 @@ def realizar_objetivos():
             atendenteMercadinho = [{'role': "system", 'content': mercadinho}]
             pergunta = objetivo["objetivo"]
             atendenteMercadinho.append({'role': "user", 'content': pergunta})
-            print("mes", atendenteMercadinho)
+            #print("mes", atendenteMercadinho)
             response = generate_answer(atendenteMercadinho, model, tools_mercadinho["tools"])
             response.choices[0].message.content = "Mercadinho: " + response.choices[0].message.content
         else:
@@ -209,8 +212,8 @@ def preco_das_coisas(objeto, preco):
     return "Preço recebido: " + objeto + " custa " + str(preco)
 
 
-def vender_pao():
-    print("Vendendo pao!")
+def vender_pao(quantidade_desejada):
+    print("Vendendo pao! Pedido:", quantidade_desejada, "pães")
     return "Pao vendido"
 
 
@@ -251,6 +254,7 @@ def salvar_config():
 
 def generate_answer(messages, modelo, tool_gen=tools, tool_choice="auto"):
     print("Perguntando ao modelo", modelo)
+    print("MENSAGEM", messages[-1]['content'])
 
     try:
         response = openai.chat.completions.create(
@@ -625,7 +629,7 @@ def enviando_pergunta(data):
         atendenteMercadinho = [{ 'role': "system", 'content': mercadinho}]
         pergunta = data["userText"][-1]["content"]
         atendenteMercadinho.append({'role': "user", 'content': pergunta})
-        print("mes", atendenteMercadinho)
+        #print("mes", atendenteMercadinho[-1]['content'])
         response = generate_answer(atendenteMercadinho, model, tools_mercadinho["tools"])
         response.choices[0].message.content = "Mercadinho: " + response.choices[0].message.content
     else:
@@ -751,10 +755,13 @@ def realizar_missao(nome_da_missao):
     global missions_list, objetivos
     nome_da_missao = str(nome_da_missao.lower())
     if nome_da_missao in missions_list:
-        print("missions_list", missions_list)
+        #print("missions_list", missions_list)
         #print("missions_list", missions_list)
         objetivos = missions_list[nome_da_missao]["objetivos"]
-        print("objetivos", objetivos)
+        #print("objetivos", objetivos)
+        for idx, obj in enumerate(objetivos):
+            print(idx + 1, obj['objetivo'])
+        print("")
         realizar_objetivos()
         return "Missão realizada"
     else:

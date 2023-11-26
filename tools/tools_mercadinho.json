@@ -7,7 +7,9 @@
                 "description": "Quando pedirem para comprar pão",
                 "parameters": {
                     "type": "object",
-                    "properties": {},
+                    "properties": {
+                        "quantidade_desejada": {"type": "integer", "description": "Quantidade de pão para vender"}
+                    },
                     "required": []
                 }
             }
