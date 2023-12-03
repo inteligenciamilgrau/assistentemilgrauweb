@@ -96,6 +96,7 @@ arduinoPorta = json_data[0]["arduino_porta"]
 falar_pergunta = json_data[0]["falar_pergunta"]
 falar_resposta = json_data[0]["falar_resposta"]
 camera_pic_url = "http://seu_ip_aqui_oh/capture"
+instrucao = "O que tem nessa imagem?"
 
 arduinoBoard = None
 #variaveis_locais = locals()
@@ -400,12 +401,15 @@ def listar_arquivos(pasta=UPLOAD_FOLDER):
         return "Nenhum arquivo encontrado."
 
 
-def atualiza_camera_url(novo_path):
-    global camera_pic_url
+def atualiza_camera_url(novo_path, instruc):
+    global camera_pic_url, instrucao
     camera_pic_url = novo_path
+    instrucao = instruc
 
 
-def analisar_imagem():
+def analisar_imagem(instrucao_img="O que tem nessa imagem?"):
+    #global instrucao
+    print("Modelo de Visão", model_vision)
     def encode_image(image_path_encode):
         if image_path_encode.startswith("http"):
             return base64.b64encode(requests.get(image_path_encode).content).decode('utf-8')
@@ -425,14 +429,14 @@ def analisar_imagem():
     }
 
     payload = {
-        "model": "gpt-4-vision-preview",
+        "model": model_vision,
         "messages": [
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "text",
-                        "text": "O que tem nessa imagem?"
+                        "text": instrucao_img
                     },
                     {
                         "type": "image_url",
@@ -443,7 +447,7 @@ def analisar_imagem():
                 ]
             }
         ],
-        "max_tokens": 300
+        "max_tokens": 4096
     }
     resposta = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return resposta.json()['choices'][0]["message"]["content"]

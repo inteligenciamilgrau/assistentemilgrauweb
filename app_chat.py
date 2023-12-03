@@ -165,7 +165,11 @@ def view_pdf(filename):
 def camera_url():
     camera_image_url = str(request.args.get("camera")).replace(":81/stream", "/capture")
     print("A nova url da camera é", camera_image_url)
-    atualiza_camera_url(camera_image_url)
+
+    instrucao = str(request.args.get("instrucao"))
+    print("A instrução é", instrucao)
+
+    atualiza_camera_url(camera_image_url, instrucao)
 
     return Response(status=204)  # jsonify({"ok":"ok"}) #f'File {file.filename} uploaded successfully.'
 

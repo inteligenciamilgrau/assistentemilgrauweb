@@ -158,7 +158,9 @@
                 "description": "Ver ou analisar a imagem que tem no stream da camera. Repasse a descrição da imagem sem alterar o texto.",
                 "parameters": {
                     "type": "object",
-                    "properties": {},
+                    "properties": {
+                        "instrucao_img": {"type": "string", "description": "A instrução do que deve ser analisado na imagem."}
+                    },
                     "required": []
                 }
             }

@@ -22,15 +22,23 @@
 <body>
 
 <label for="streamUrl">URL do Stream ou Foto:</label>
-<input type="text" id="streamUrl" value="http://seu_ip_aqui_oh:81/stream">
-
+<input type="text" id="streamUrl" value="https://www.ufmt.br/ocs/images/phocagallery/galeria2/thumbs/phoca_thumb_l_image03_grd.png">
 <button onclick="startStopStream()">Start/Stop Stream</button>
+<br>
+<!-- <label for="oquefazer">Instrução para o GPT Vision:</label>
+<input type="text" id="oquefazer" value="O que tem nessa imagem?">-->
+
+
 
 <img id="streamImage" style="display:none">
+<p>URL de Exemplo</p>
+<p>https://www.ufmt.br/ocs/images/phocagallery/galeria2/thumbs/phoca_thumb_l_image03_grd.png</p>
+<p>http://seu_ip_aqui_oh:81/stream</p>
 
 <script>
     let streamImage = document.getElementById("streamImage");
     let streamUrlInput = document.getElementById("streamUrl");
+    //let oquefazerInput = document.getElementById("oquefazer");
 
     function startStopStream() {
         if (streamImage.style.display === "none") {
@@ -42,6 +50,7 @@
 
     function startStream() {
         let streamUrl = streamUrlInput.value;
+        //let instrucao = oquefazerInput.value;
         if (streamUrl.trim() === "") {
             alert("Please enter a valid stream URL");
             return;
@@ -54,6 +63,7 @@
         }
 
         streamImage.style.display = "block";
+        //fetch('/camera_url?camera=' + streamUrl + '&instrucao=' + instrucao, {
         fetch('/camera_url?camera=' + streamUrl, {
           method: 'GET', // This is the default, so you can omit it.
           headers: {
