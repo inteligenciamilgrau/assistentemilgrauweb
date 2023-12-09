@@ -30,97 +30,76 @@ const createChatElement = (content, className) => {
 const getChatResponse = async (incomingChatDiv) => {
   const pElement = document.createElement("p");
 
-  userHistory.push({role: "user", content: userText});
-
-  try {
-    response = ""
-    await ($.ajax({
-        type: 'POST',
-        url: '/enviar',
-        contentType: 'application/json',
-        data: JSON.stringify({ userText: userHistory }),
-        success: function(response_gpt) {
-            response = response_gpt
-        }
-    }));
-
-    //pElement.textContent = response;
-    //response = response
-
-    var regex = /{[^}]*}/;
-    var correspondencias = response.match(regex);
-
-    // Verifique se houve correspondência
-    if (correspondencias) {
-        // A primeira correspondência na string é o JSON
-        var jsonEncontrado = correspondencias[0];
-
-        // Remova qualquer texto antes ou depois do JSON
-        jsonEncontrado = jsonEncontrado.replace(/.*{/,'{');
-        //console.log("Encontrei", jsonEncontrado)
-
-        // Analise o JSON
-        try {
-            //var response = JSON.parse(jsonEncontrado);
-            var message = {
-                jogada: jsonEncontrado // Function name to call in Child 1
-            };
-            parent.postMessage(message, "*");
-        } catch (erro) {
-            console.error('Erro ao analisar o JSON:', erro);
-        }
-    }
-    /*
-    if(response.startsWith('{"jogada"')){
-        jogada = JSON.parse(response);
-        var message = {
-                jogada: response // Function name to call in Child 1
-            };
-            parent.postMessage(message, "*");
-    }*/
-
-
-
-    const words = response.split(' ');
-
-    let wordIndex = 0;
-
-    // Function to add words word by word
-    function addWord() {
-        var delay_palavras = 50
-        if(ativa_falar){
-            delay_palavras = 300
-        }
-        if (wordIndex < words.length) {
-            pElement.textContent += words[wordIndex] + ' ';
-            wordIndex++;
-            setTimeout(addWord, delay_palavras); // Adjust the delay (in milliseconds) as needed
-        }
+  var imagem = false;
+  if (userText.startsWith("/img ")) {
+        // Se sim, imprime "img" no console
+        console.log("chegou img");
+        imagem = true
+    } else {
+        // Se não, imprime o texto original no console
+        console.log(userText);
     }
 
-    if(ativa_falar){
-        $.ajax({
+  if(imagem){
+
+  }else{
+      userHistory.push({role: "user", content: userText});
+
+      try {
+        response = ""
+        await ($.ajax({
             type: 'POST',
-            url: '/falar',
+            url: '/enviar',
             contentType: 'application/json',
-            data: JSON.stringify({ texto: response }),
+            data: JSON.stringify({ userText: userHistory }),
             success: function(response_gpt) {
-                //response = response_gpt
+                response = response_gpt
             }
-        })
-    }
+        }));
 
-    // Start adding words
-    addWord();
+        // para respostas do jogo da velha
+        var regex = /{[^}]*}/;
+        var correspondencias = response.match(regex);
 
-    userHistory.push({role: "assistant", content: response});
+        // Verifique se houve correspondência
+        if (correspondencias) {
+            // A primeira correspondência na string é o JSON
+            var jsonEncontrado = correspondencias[0];
 
-  } catch (error) {
-    // Add error class to the paragraph element and set error text
-    pElement.classList.add("error");
-    pElement.textContent =
-      "Deu ruim no assistente! Tenta de novo!";
+            // Remova qualquer texto antes ou depois do JSON
+            jsonEncontrado = jsonEncontrado.replace(/.*{/,'{');
+            //console.log("Encontrei", jsonEncontrado)
+
+            // Analise o JSON
+            try {
+                //var response = JSON.parse(jsonEncontrado);
+                var message = {
+                    jogada: jsonEncontrado // Function name to call in Child 1
+                };
+                // jogar no jogo da velha
+                parent.postMessage(message, "*");
+            } catch (erro) {
+                console.error('Erro ao analisar o JSON:', erro);
+            }
+        }
+
+        if(ativa_falar){
+            falar_texto(response);
+        }
+
+        // Escreve letra por letra no chat
+        addWord(response, pElement);
+
+        userHistory.push({role: "assistant", content: response});
+
+      } catch (error) {
+        // Add error class to the paragraph element and set error text
+        pElement.classList.add("error");
+        pElement.textContent =
+          "Deu ruim no assistente! Tenta de novo!";
+      }
   }
+
 
   // Remove the typing animation, append the paragraph element and save the chats to local storage
   incomingChatDiv.querySelector(".typing-animation").remove();
@@ -143,6 +122,37 @@ const getChatResponse = async (incomingChatDiv) => {
 
   chatContainer.scrollTo(0, chatContainer.scrollHeight);
 };
+
+// Function to add words word by word
+function addWord(response_add, pElement) {
+    let wordIndex = 0;
+    const words = response_add.split(' ');
+    var delay_palavras = 50
+    if(ativa_falar){
+        delay_palavras = 300
+    }
+    function displayNextWord() {
+        if (wordIndex < words.length) {
+            pElement.textContent += words[wordIndex] + ' ';
+            wordIndex++;
+            setTimeout(displayNextWord, delay_palavras); // Adjust the delay (in milliseconds) as needed
+        }
+    }
+
+    displayNextWord();
+}
+
+function falar_texto(response){
+    $.ajax({
+            type: 'POST',
+            url: '/falar',
+            contentType: 'application/json',
+            data: JSON.stringify({ texto: response }),
+            success: function(response_gpt) {
+                //response = response_gpt
+            }
+        })
+}
 
 const copyResponse = (copyBtn) => {
   // Copy the text content of the response to the clipboard

@@ -13,6 +13,8 @@ from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 from .assistentes import mercadinho
+import re
+import shutil
 
 #from ..app_chat import arduinoBoard, arduinoPorta, json_data
 
@@ -794,6 +796,33 @@ def load_from_json():
     except FileNotFoundError:
         return []
 
+
+def verificar_hd(camera_image_url):
+    padrao_hd = re.compile(r'^[A-Za-z]:[/\\]')
+    print("verifica", camera_image_url)
+
+    if padrao_hd.match(camera_image_url):
+        print("HD")
+        copiar_imagem(camera_image_url)
+        #time.sleep(1)
+        return True
+    else:
+        print("Não é um HD")
+        return False
+
+def copiar_imagem(source_path):
+    try:
+        # Extrai o nome do arquivo e a extensão
+        nome_arquivo, extensao = os.path.splitext(os.path.basename(source_path))
+
+        # Define o novo caminho de destino
+        dest_path = os.path.join(".", "static", "img", f"imagem{extensao.lower()}")
+
+        # Copia o arquivo para o novo destino
+        shutil.copy(source_path, dest_path)
+        print("Copiou", source_path, dest_path)
+    except Exception as e:
+        print("Erro durante a cópia:", str(e))
 
 filename_missions = 'missions.json'
 missions_list = load_from_json()

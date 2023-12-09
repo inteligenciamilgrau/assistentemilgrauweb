@@ -160,14 +160,22 @@ def upload():
 def view_pdf(filename):
     return send_file(os.path.join(UPLOAD_FOLDER, filename))
 
-
+image_extension = "jpg"
 @app.route('/camera_url', methods=['GET'])
 def camera_url():
+    global image_extension
     camera_image_url = str(request.args.get("camera")).replace(":81/stream", "/capture")
-    print("A nova url da camera é", camera_image_url)
 
     instrucao = str(request.args.get("instrucao"))
+
+    if verificar_hd(camera_image_url):
+        nome_arquivo, extensao = os.path.splitext(os.path.basename(camera_image_url))
+        print("exten", extensao.lower()[1:])
+        image_extension = extensao.lower()[1:]
+        camera_image_url = "http://127.0.0.1:5000/image"
+    print("cam", camera_image_url)
     print("A instrução é", instrucao)
+    print("A nova url da camera é", camera_image_url)
 
     atualiza_camera_url(camera_image_url, instrucao)
 
@@ -199,6 +207,16 @@ def update_tilemap():
 def grafico():
     # Render the HTML template and pass the image file to it
     return render_template('grafico.html', image_file='grafico.png')
+
+
+@app.route('/image')
+def get_image():
+    global image_extension
+    # Specify the path to your image file
+    image_path = 'static\\img\\imagem'  # Replace with the actual path to your image file
+
+    # Send the image file as a response
+    return send_file(f'{image_path}.{image_extension}', mimetype=f'image/{image_extension}')
 
 
 if __name__ == '__main__':

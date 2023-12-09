@@ -56,13 +56,6 @@
             return;
         }
 
-        try {
-            streamImage.src = streamUrl;
-        } catch (error) {
-            console.error("Error setting streamImage src:", error.message);
-        }
-
-        streamImage.style.display = "block";
         //fetch('/camera_url?camera=' + streamUrl + '&instrucao=' + instrucao, {
         fetch('/camera_url?camera=' + streamUrl, {
           method: 'GET', // This is the default, so you can omit it.
@@ -76,12 +69,25 @@
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
+          try {
+                // Verificar se streamUrl começa com uma letra de unidade (c:/ ou D:\)
+                if (/^[A-Za-z]:[\\\/]/.test(streamUrl)) {
+                    // Se sim, ajustar para o novo URL
+                    streamUrl = 'http://127.0.0.1:5000/image?timestamp=' + new Date().getTime();
+                }
+                streamImage.src = streamUrl;
+            } catch (error) {
+                console.error("Error setting streamImage src:", error.message);
+            }
+            streamImage.style.display = "block";
           return response; // Parse the response as JSON
         })
         .catch(error => {
           // Handle errors here
           console.error('Fetch error:', error);
         });
+
+
     }
 
     function stopStream() {
