@@ -219,5 +219,16 @@ def get_image():
     return send_file(f'{image_path}.{image_extension}', mimetype=f'image/{image_extension}')
 
 
+@app.route('/imagens_multiplas', methods=['POST'])
+def imagens_multiplas():
+    data = request.get_json()
+
+    instrucao_multipla = data.get("instrucao", '')
+    path_imagens = data.get("imagens")
+    print('imagens_multiplas', data, instrucao_multipla, path_imagens)
+
+    return envia_imagens(path_imagens, instrucao_multipla)
+
+
 if __name__ == '__main__':
     app.run(debug=True)

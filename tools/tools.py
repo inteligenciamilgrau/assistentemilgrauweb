@@ -409,51 +409,64 @@ def atualiza_camera_url(novo_path, instruc):
     instrucao = instruc
 
 
+def encode_image(image_path_encode):
+    if image_path_encode.startswith("http"):
+        return base64.b64encode(requests.get(image_path_encode).content).decode('utf-8')
+    else:
+        os.chdir(ACTUAL_FOLDER)
+        with open(image_path_encode, "rb") as image_file_web:
+            return base64.b64encode(image_file_web.read()).decode('utf-8')
+
+
 def analisar_imagem(instrucao_img="O que tem nessa imagem?"):
     #global instrucao
     print("Modelo de Visão", model_vision)
-    def encode_image(image_path_encode):
-        if image_path_encode.startswith("http"):
-            return base64.b64encode(requests.get(image_path_encode).content).decode('utf-8')
-        else:
-            with open(image_path_encode, "rb") as image_file_web:
-                return base64.b64encode(image_file_web.read()).decode('utf-8')
 
     # image_path = "http://ip_intelbras/onvif/snapshot.jpg"
     # image_path = "http://ip_esp32/capture"
-    image_path = camera_pic_url
-    print("image_path", image_path)
-    base64_image = encode_image(image_path)
 
+    image_path = camera_pic_url
+    resposta = envia_imagens([image_path], instrucao_img)
+
+    return resposta
+
+
+def envia_imagens(images_path, instrucao="O que tem nessa imagem?"):
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
+
+    # Inicialize a lista content
+    content = [{
+        "type": "text",
+        "text": instrucao
+    }]
+
+    for image_path in images_path:
+        print("image_path", image_path)
+        base64_image = encode_image(image_path)
+        content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{base64_image}"
+            }
+        })
+
+    # Adicione a instrução como um bloco de texto
 
     payload = {
         "model": model_vision,
         "messages": [
             {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": instrucao_img
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
-                        }
-                    }
-                ]
+                "content": content
             }
         ],
         "max_tokens": 4096
     }
     resposta = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return resposta.json()['choices'][0]["message"]["content"]
-
 
 
 

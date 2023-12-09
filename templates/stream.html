@@ -34,6 +34,8 @@
 <p>URL de Exemplo</p>
 <p>https://www.ufmt.br/ocs/images/phocagallery/galeria2/thumbs/phoca_thumb_l_image03_grd.png</p>
 <p>http://seu_ip_aqui_oh:81/stream</p>
+<p>Comando /img para multiplas imagens</p>
+<p>/img Tem algum animal nas imagens?;[https://www.ufmt.br/ocs/images/phocagallery/galeria2/thumbs/phoca_thumb_l_image03_grd.png,./static/img/casa.png]</p>
 
 <script>
     let streamImage = document.getElementById("streamImage");
@@ -74,8 +76,13 @@
                 if (/^[A-Za-z]:[\\\/]/.test(streamUrl)) {
                     // Se sim, ajustar para o novo URL
                     streamUrl = 'http://127.0.0.1:5000/image?timestamp=' + new Date().getTime();
+                    streamImage.src = streamUrl;
+                    ///////////////
+
+                    ///////////////
+                } else{
+                    streamImage.src = streamUrl;
                 }
-                streamImage.src = streamUrl;
             } catch (error) {
                 console.error("Error setting streamImage src:", error.message);
             }

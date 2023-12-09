@@ -35,6 +35,37 @@ const getChatResponse = async (incomingChatDiv) => {
         // Se sim, imprime "img" no console
         console.log("chegou img");
         imagem = true
+
+        // Encontre a descrição da pergunta # a pergunta termina com ";"
+        const descricaoRegex = /\/img\s(.*?)(?:;|\[)/;
+        const descricaoMatch = descricaoRegex.exec(userText);
+        const instrucao = descricaoMatch ? descricaoMatch[1].trim() : '';
+
+        const nomesImagensRegex = /\[([^]+)]/;
+        const nomesImagensMatch = userText.match(nomesImagensRegex);
+        const imagens = nomesImagensMatch ? nomesImagensMatch[1].split(',').map(nome => nome.trim()) : [];
+
+        //var instrucao = "Quantos animais tem mas imagens?"
+        //var imagens = "https://www.ufmt.br/ocs/images/phocagallery/galeria2/thumbs/phoca_thumb_l_image03_grd.png,D:\\videos\\YouTube Tutoriais\\2023-IMG\\bob-editor\\87 - Yolo V8 Train\\_5a26e70e-abb2-4614-bc45-c65b748c6a0e.jfif"
+
+        await ($.ajax({
+            type: 'POST',
+            url: '/imagens_multiplas',
+            contentType: 'application/json',
+            data: JSON.stringify({ instrucao: instrucao, imagens: imagens }),
+            success: function(response_gpt) {
+                response = response_gpt
+                console.log(response_gpt)
+
+                if(ativa_falar){
+                    falar_texto(response);
+                }
+
+                // Escreve letra por letra no chat
+                addWord(response, pElement);
+            }
+        }));
+
     } else {
         // Se não, imprime o texto original no console
         console.log(userText);
