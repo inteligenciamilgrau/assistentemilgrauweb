@@ -816,7 +816,7 @@ def copiar_imagem(source_path):
         nome_arquivo, extensao = os.path.splitext(os.path.basename(source_path))
 
         # Define o novo caminho de destino
-        dest_path = os.path.join(".", "static", "img", f"imagem{extensao.lower()}")
+        dest_path = os.path.join(ACTUAL_FOLDER, "static", "img", f"imagem{extensao.lower()}")
 
         # Copia o arquivo para o novo destino
         shutil.copy(source_path, dest_path)
