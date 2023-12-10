@@ -19,7 +19,7 @@ import shutil
 #from ..app_chat import arduinoBoard, arduinoPorta, json_data
 
 ACTUAL_FOLDER = os.getcwd()
-UPLOAD_FOLDER = ACTUAL_FOLDER + "\\docs"
+UPLOAD_FOLDER = ACTUAL_FOLDER + "\\static\\docs"
 
 mover = []
 destino = "none"
@@ -319,6 +319,8 @@ def generate_answer(messages, modelo, tool_gen=tools, tool_choice="auto"):
 
             if function_name == "analisar_imagem":
                 response.choices[0].message.content = "COMANDO: " + function_response
+            elif function_name == "gerar_imagem_dalle3":
+                response.choices[0].message.content = function_response
             else:
                 second_response = openai.chat.completions.create(
                     model=modelo,
@@ -836,6 +838,21 @@ def copiar_imagem(source_path):
         print("Copiou", source_path, dest_path)
     except Exception as e:
         print("Erro durante a cópia:", str(e))
+
+
+def gerar_imagem_dalle3(descricao):
+    global camera_pic_url
+    response = openai.images.generate(
+        model="dall-e-3",
+        prompt=descricao,
+        size="1024x1024",
+        quality="standard",
+        n=1,
+    )
+
+    camera_pic_url = response.data[0].url
+
+    return camera_pic_url
 
 filename_missions = 'missions.json'
 missions_list = load_from_json()

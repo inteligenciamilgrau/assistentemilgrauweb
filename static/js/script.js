@@ -29,6 +29,9 @@ const createChatElement = (content, className) => {
 
 const getChatResponse = async (incomingChatDiv) => {
   const pElement = document.createElement("p");
+  const imageElement  = document.createElement("img");
+  const parentFrameIframe = window.parent.document.getElementById("myIframe");
+  const iframeContentDocument = parentFrameIframe.contentDocument;
 
   var imagem = false;
   if (userText.startsWith("/img ")) {
@@ -114,12 +117,26 @@ const getChatResponse = async (incomingChatDiv) => {
             }
         }
 
+        if(response.startsWith("http")){
+            // Set the src attribute
+            imageElement.setAttribute("src", response);
+            //document.body.appendChild(imageElement);
+            imageElement.style.width = '100%';
+            imageElement.style.height = '100%';
+
+            iframeContentDocument.body.innerHTML = "";
+            // Append the img element to the body of the iframe
+            iframeContentDocument.body.appendChild(imageElement);
+
+            response = "Aqui está sua imagem."
+        }
+
         if(ativa_falar){
             falar_texto(response);
         }
 
         // Escreve letra por letra no chat
-        addWord(response, pElement);
+        addWord(response, pElement, imageElement);
 
         userHistory.push({role: "assistant", content: response});
 

@@ -208,6 +208,20 @@
                     "required": ["dados_x", "dados_y"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "gerar_imagem_dalle3",
+                "description": "Gerar uma imagem a partir de uma descrição",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "descricao": {"type": "string", "description": "Descrição da imagem a ser criada"}
+                    },
+                    "required": ["descricao"]
+                }
+            }
         }
     ]
 }

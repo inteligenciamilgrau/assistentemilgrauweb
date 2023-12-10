@@ -231,4 +231,7 @@ def imagens_multiplas():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    host = '127.0.0.1'  # Replace with your desired host
+    port = 5000  # Replace with your desired port
+    print(f"Rodando em http://{host}:{port}/")
+    app.run(debug=True, host=host, port=port)
