@@ -465,7 +465,8 @@ def envia_imagens(images_path, instrucao="O que tem nessa imagem?"):
                 "content": content
             }
         ],
-        "max_tokens": 4096
+        "max_tokens": 4096,
+        "temperature": 1.0
     }
     resposta = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     return resposta.json()['choices'][0]["message"]["content"]
