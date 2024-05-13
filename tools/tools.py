@@ -5,7 +5,7 @@ import openai
 import pyttsx3
 import base64
 import requests
-import PyPDF2
+import pypdf
 import threading
 import sched
 import time
@@ -373,7 +373,7 @@ def destino_player(destino_desejado, coletar_quantidade="0"):
 
 def ler_arquivo(arquivo, max_paginas=5):
     filename_resumo = os.path.join(UPLOAD_FOLDER, arquivo)
-    reader = PyPDF2.PdfReader(filename_resumo)
+    reader = pypdf.PdfReader(filename_resumo)
     # print("TEXTO DO ARQUIVO >>>>")
     texto_completo = ""
     total_paginas = len(reader.pages)

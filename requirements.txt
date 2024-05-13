@@ -3,7 +3,7 @@ openai
 pyttsx3
 SpeechRecognition
 pyfirmata2
-PyPDF2
+pypdf
 pandas
 openpyxl
 matplotlib
